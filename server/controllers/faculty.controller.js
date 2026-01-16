@@ -2,7 +2,8 @@ const fs = require('fs');
 const path = require('path');
 const pdf = require('pdf-parse');
 const Syllabus = require('../models/Syllabus');
-const { generateJSON } = require('../services/gemini.service');
+const Assignment = require('../models/Assignment');
+const { generateJSON, generateJSONWithFile } = require('../services/gemini.service');
 
 // @desc    Upload syllabus
 // @route   POST /api/faculty/syllabus
@@ -13,16 +14,18 @@ const uploadSyllabus = async (req, res) => {
             return res.status(400).json({ message: 'Please upload a file' });
         }
 
-        // Extract Text from PDF (Optional / Best Effort)
+        // Extract Text from PDF
         let extractedText = '';
         try {
             const dataBuffer = fs.readFileSync(req.file.path);
             const data = await pdf(dataBuffer);
             extractedText = data.text;
-        } catch (pdfError) {
-            console.error('PDF Extraction Warning:', pdfError.message);
-            // We continue without text if extraction fails
+            console.log('PDF Parse Success. Text Length:', extractedText ? extractedText.length : 0);
+        } catch (error) {
+            console.error('PDF Extraction Error:', error.message);
         }
+
+        console.log('Final Extracted Text Length before DB Save:', extractedText ? extractedText.length : 0);
 
         // Save to DB
         const syllabus = await Syllabus.create({
@@ -57,12 +60,6 @@ const generateAssignmentFromSyllabus = async (req, res) => {
             return res.status(404).json({ message: 'Syllabus not found' });
         }
 
-        if (!syllabus.content) {
-            // Need to handle cases where old syllabus doesn't have content or extraction failed.
-            // For now, fail. Ideally, we could attempt re-extraction here.
-            return res.status(400).json({ message: 'Syllabus content text not available. Please re-upload.' });
-        }
-
         const prompt = `
             You are an expert educational assistant. Create an assignment based on the provided syllabus content.
             
@@ -72,9 +69,6 @@ const generateAssignmentFromSyllabus = async (req, res) => {
             - **Focus Topics:** ${topics || "Entire Syllabus"}
             - **Number of Questions:** ${numQuestions || 5}
             - **Marks per Question:** ${marksPerQuestion || 10}
-
-            **Syllabus Content:**
-            ${syllabus.content.substring(0, 15000)} // Truncate to avoid context limit if excessively huge
 
             **Instructions:**
             Generate a list of questions that test the student's understanding of the syllabus, specifically focusing on the topics mentioned if ANY.
@@ -96,7 +90,27 @@ const generateAssignmentFromSyllabus = async (req, res) => {
             }
         `;
 
-        const generatedAssignment = await generateJSON(prompt);
+        let generatedAssignment;
+
+        // CHECK: Do we have extracted text content?
+        if (syllabus.content && syllabus.content.length > 50) {
+            // Case 1: Use Extracted Text
+            const fullPrompt = `
+               ${prompt}
+
+               **Syllabus Content:**
+               ${syllabus.content.substring(0, 20000)}
+           `;
+            generatedAssignment = await generateJSON(fullPrompt);
+
+        } else if (fs.existsSync(syllabus.path)) {
+            // Case 2: No Text Extracted - Upload PDF directly to Gemini
+            console.log('No text content found. Uploading PDF directly to Gemini 2.5 Flash...');
+            generatedAssignment = await generateJSONWithFile(syllabus.path, 'application/pdf', prompt);
+
+        } else {
+            return res.status(400).json({ message: 'Syllabus file not found.' });
+        }
 
         if (!generatedAssignment) {
             return res.status(500).json({ message: 'Failed to generate assignment from AI' });
@@ -154,9 +168,79 @@ const deleteSyllabus = async (req, res) => {
     }
 };
 
+// @desc    Save generated assignment
+// @route   POST /api/faculty/assignments/save
+// @access  Private
+const saveGeneratedAssignment = async (req, res) => {
+    const { title, description, questions, syllabusId, topics, numQuestions, marksPerQuestion } = req.body;
+
+    try {
+        const assignment = await Assignment.create({
+            title,
+            description,
+            questions,
+            syllabusId,
+            createdBy: req.user.id,
+            type: 'AI_Generated',
+            topics,
+            numQuestions,
+            marksPerQuestion
+        });
+
+        res.status(201).json({
+            message: 'Assignment saved successfully',
+            assignment
+        });
+    } catch (error) {
+        console.error('Save Assignment Error:', error);
+        res.status(500).json({ message: 'Server error saving assignment' });
+    }
+};
+
+// @desc    Get all assignments for faculty
+// @route   GET /api/faculty/assignments
+// @access  Private
+const getAssignmentsList = async (req, res) => {
+    try {
+        const assignments = await Assignment.find({ createdBy: req.user.id })
+            .sort({ createdAt: -1 })
+            .select('title description createdAt questions type');
+        res.json(assignments);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// @desc    Get assignment by ID
+// @route   GET /api/faculty/assignments/:id
+// @access  Private
+const getAssignmentById = async (req, res) => {
+    try {
+        const assignment = await Assignment.findById(req.params.id);
+
+        if (!assignment) {
+            return res.status(404).json({ message: 'Assignment not found' });
+        }
+
+        // Verify ownership
+        if (assignment.createdBy.toString() !== req.user.id) {
+            return res.status(401).json({ message: 'Not authorized' });
+        }
+
+        res.json(assignment);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
 module.exports = {
     uploadSyllabus,
     getSyllabusList,
     deleteSyllabus,
-    generateAssignmentFromSyllabus
+    generateAssignmentFromSyllabus,
+    saveGeneratedAssignment,
+    getAssignmentsList,
+    getAssignmentById
 };

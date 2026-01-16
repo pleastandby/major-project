@@ -79,6 +79,35 @@ const AssignmentGenerator = () => {
         }
     };
 
+    const handleSaveAssignment = async () => {
+        try {
+            const res = await authFetch('/api/faculty/assignments/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ...generatedAssignment,
+                    syllabusId: selectedSyllabus,
+                    topics,
+                    numQuestions: parseInt(numQuestions),
+                    marksPerQuestion: parseInt(marksPerQuestion)
+                })
+            });
+
+            if (res.ok) {
+                alert('Assignment saved successfully!');
+                setGeneratedAssignment(null);
+                // Optionally redirect to assignments list
+                window.location.href = '/faculty/assignments';
+            } else {
+                const data = await res.json();
+                alert(data.message || 'Failed to save assignment');
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Error saving assignment');
+        }
+    };
+
     return (
         <div className="max-w-6xl mx-auto p-8">
             <div className="mb-8">
@@ -260,8 +289,11 @@ const AssignmentGenerator = () => {
                                 >
                                     Discard
                                 </button>
-                                <button className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark shadow-sm">
-                                    Save as Draft
+                                <button
+                                    className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark shadow-sm"
+                                    onClick={handleSaveAssignment}
+                                >
+                                    Save Assignment
                                 </button>
                             </div>
                         </div>

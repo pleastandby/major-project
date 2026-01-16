@@ -3,7 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { uploadSyllabus, getSyllabusList, deleteSyllabus, generateAssignmentFromSyllabus } = require('../controllers/faculty.controller');
+const { uploadSyllabus, getSyllabusList, deleteSyllabus, generateAssignmentFromSyllabus, saveGeneratedAssignment, getAssignmentsList, getAssignmentById } = require('../controllers/faculty.controller');
 const { protect } = require('../middleware/authMiddleware');
 
 // Configure Multer Storage
@@ -25,12 +25,12 @@ const storage = multer.diskStorage({
     }
 });
 
-// File Filter (Accept only PDF)
+// File Filter (Accept PDF and Images)
 const fileFilter = (req, file, cb) => {
-    if (file.mimetype === 'application/pdf') {
+    if (file.mimetype === 'application/pdf' || file.mimetype.startsWith('image/')) {
         cb(null, true);
     } else {
-        cb(new Error('Only PDF files are allowed!'), false);
+        cb(new Error('Only PDF and Image files are allowed!'), false);
     }
 };
 
@@ -55,5 +55,17 @@ router.delete('/syllabus/:id', protect, deleteSyllabus);
 // @route   POST /api/faculty/assignments/generate
 // @access  Private
 router.post('/assignments/generate', protect, generateAssignmentFromSyllabus);
+
+// @route   POST /api/faculty/assignments/save
+// @access  Private
+router.post('/assignments/save', protect, saveGeneratedAssignment);
+
+// @route   GET /api/faculty/assignments
+// @access  Private
+router.get('/assignments', protect, getAssignmentsList);
+
+// @route   GET /api/faculty/assignments/:id
+// @access  Private
+router.get('/assignments/:id', protect, getAssignmentById);
 
 module.exports = router;

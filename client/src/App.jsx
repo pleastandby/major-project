@@ -17,6 +17,8 @@ import VerifyOTP from './pages/VerifyOTP';
 import ResetPassword from './pages/ResetPassword';
 import FacultySyllabus from './pages/FacultySyllabus';
 import AssignmentGenerator from './pages/AssignmentGenerator';
+import AssignmentList from './pages/AssignmentList';
+import AssignmentView from './pages/AssignmentView';
 
 import StudentLayout from './components/StudentLayout';
 import FacultyLayout from './components/FacultyLayout';
@@ -71,7 +73,8 @@ function App() {
               <Route element={<FacultyLayout />}>
                 <Route path="/faculty/dashboard" element={<FacultyDashboard />} />
                 <Route path="/faculty/courses" element={<div className="p-4"><h1>Manage Courses</h1><p>Coming Soon</p></div>} />
-                <Route path="/faculty/assignments" element={<div className="p-4"><h1>Assignments</h1><p>Coming Soon</p></div>} />
+                <Route path="/faculty/assignments" element={<AssignmentList />} />
+                <Route path="/faculty/assignments/:id" element={<AssignmentView />} />
                 <Route path="/faculty/notifications" element={<div className="p-4"><h1>Notifications</h1><p>Coming Soon</p></div>} />
                 <Route path="/faculty/syllabus" element={<FacultySyllabus />} />
                 <Route path="/faculty/profile" element={<div className="p-4"><h1>Profile</h1><p>Coming Soon</p></div>} />

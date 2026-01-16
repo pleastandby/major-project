@@ -32,9 +32,9 @@ const FacultySyllabus = () => {
     const handleFileChange = (e) => {
         const selectedFile = e.target.files[0];
         if (selectedFile) {
-            if (selectedFile.type !== 'application/pdf') {
+            if (selectedFile.type !== 'application/pdf' && !selectedFile.type.startsWith('image/')) {
                 setUploadStatus('error');
-                setMessage('Only PDF files are allowed.');
+                setMessage('Only PDF or Image files are allowed.');
                 setFile(null);
                 return;
             }
@@ -134,7 +134,7 @@ const FacultySyllabus = () => {
                         <div className="relative w-full">
                             <input
                                 type="file"
-                                accept=".pdf"
+                                accept=".pdf,.jpg,.jpeg,.png"
                                 onChange={handleFileChange}
                                 className="hidden"
                                 id="syllabus-upload"
@@ -144,7 +144,7 @@ const FacultySyllabus = () => {
                                 className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm"
                             >
                                 <FileText size={18} />
-                                {file ? file.name : 'Choose PDF File'}
+                                {file ? file.name : 'Choose PDF or Image'}
                             </label>
                         </div>
 
