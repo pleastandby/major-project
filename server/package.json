@@ -17,6 +17,7 @@
         "mongoose": "^8.0.3",
         "multer": "^2.0.2",
         "nodemailer": "^7.0.12",
+        "pdf-parse": "^2.4.5",
         "tesseract.js": "^7.0.0"
     },
     "devDependencies": {

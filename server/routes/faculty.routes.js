@@ -3,9 +3,8 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { uploadSyllabus } = require('../controllers/faculty.controller');
-// Placeholder middleware - in a real app, you'd import auth middleware to protect routes
-// const { protect, facultyOnly } = require('../middleware/authMiddleware');
+const { uploadSyllabus, getSyllabusList, deleteSyllabus, generateAssignmentFromSyllabus } = require('../controllers/faculty.controller');
+const { protect } = require('../middleware/authMiddleware');
 
 // Configure Multer Storage
 const storage = multer.diskStorage({
@@ -42,7 +41,19 @@ const upload = multer({
 });
 
 // @route   POST /api/faculty/syllabus
-// @access  Private (should be)
-router.post('/syllabus', upload.single('syllabus'), uploadSyllabus);
+// @access  Private
+router.post('/syllabus', protect, upload.single('syllabus'), uploadSyllabus);
+
+// @route   GET /api/faculty/syllabus
+// @access  Private
+router.get('/syllabus', protect, getSyllabusList);
+
+// @route   DELETE /api/faculty/syllabus/:id
+// @access  Private
+router.delete('/syllabus/:id', protect, deleteSyllabus);
+
+// @route   POST /api/faculty/assignments/generate
+// @access  Private
+router.post('/assignments/generate', protect, generateAssignmentFromSyllabus);
 
 module.exports = router;

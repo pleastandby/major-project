@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FileText, BookOpen, Bell, User, LogOut, Search, Sun, School, FileSpreadsheet } from 'lucide-react';
+import { LayoutDashboard, FileText, BookOpen, Bell, User, LogOut, Search, Sun, School, FileSpreadsheet, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 
@@ -18,6 +18,7 @@ const FacultySidebar = () => {
         { path: '/faculty/assignments', icon: FileText, label: 'Assignments' },
         { path: '/faculty/notifications', icon: Bell, label: 'Notifications' },
         { path: '/faculty/syllabus', icon: FileSpreadsheet, label: 'Syllabus' },
+        { path: '/faculty/assignments/generate', icon: Sparkles, label: 'AI Generator' },
         { path: '/faculty/profile', icon: User, label: 'Profile' }
     ];
 
@@ -55,8 +56,8 @@ const FacultySidebar = () => {
                             key={item.path}
                             to={item.path}
                             className={`flex items-center gap-4 px-4 py-3.5 rounded-xl text-sm font-medium transition-all duration-200 ${active
-                                    ? 'text-gray-900 dark:text-white bg-transparent'
-                                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800'
+                                ? 'text-gray-900 dark:text-white bg-transparent'
+                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800'
                                 }`}
                         >
                             <item.icon size={22} strokeWidth={1.5} className={active ? "text-gray-900 dark:text-white" : "text-gray-500 dark:text-gray-400"} />

@@ -16,9 +16,13 @@ export const AuthProvider = ({ children }) => {
 
         // Base headers
         const headers = {
-            'Content-Type': 'application/json',
             ...(options.headers || {})
         };
+
+        // Only set JSON content type if not FormData and not already set
+        if (!headers['Content-Type'] && !(options.body instanceof FormData)) {
+            headers['Content-Type'] = 'application/json';
+        }
 
         if (accessToken) {
             headers['Authorization'] = `Bearer ${accessToken}`;

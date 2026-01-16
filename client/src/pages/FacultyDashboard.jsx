@@ -4,13 +4,13 @@ import DashboardCourseCard from '../components/DashboardCourseCard';
 import { Link } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
 
-import Lottie from 'lottie-react';
+
 
 const FacultyDashboard = () => {
     const { user, authFetch } = useAuth();
     const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [animationData, setAnimationData] = useState(null);
+
 
     useEffect(() => {
         const fetchCourses = async () => {
@@ -31,14 +31,7 @@ const FacultyDashboard = () => {
             }
         };
 
-        // Fetch Lottie Animation
-        fetch('/Books.json')
-            .then(res => {
-                if (!res.ok) throw new Error('Failed to load Lottie');
-                return res.json();
-            })
-            .then(data => setAnimationData(data))
-            .catch(err => console.error('Failed to load animation', err));
+
 
         fetchCourses();
     }, [authFetch]);
@@ -51,13 +44,7 @@ const FacultyDashboard = () => {
                     <h1 className="text-4xl font-bold mb-2">Welcome back {user?.name?.split(' ')[0]}!</h1>
                     <p className="text-gray-300 text-lg">Manage your courses and assignments!</p>
                 </div>
-                {/* Lottie Animation */}
-                {/* Lottie Animation */
-                /* {animationData && (
-                    <div className="w-48 h-48 md:w-64 md:h-64 absolute right-0 -bottom-10 opacity-20 md:opacity-100 md:relative md:opacity-100 md:bottom-auto pointer-events-none">
-                        <Lottie animationData={animationData} loop={true} />
-                    </div>
-                )} */}
+
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
