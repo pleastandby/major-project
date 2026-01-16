@@ -235,6 +235,102 @@ const getAssignmentById = async (req, res) => {
     }
 };
 
+// @desc    Update assignment
+// @route   PATCH /api/faculty/assignments/:id
+// @access  Private
+const updateAssignment = async (req, res) => {
+    try {
+        const assignment = await Assignment.findById(req.params.id);
+
+        if (!assignment) {
+            return res.status(404).json({ message: 'Assignment not found' });
+        }
+
+        // Verify ownership
+        if (assignment.createdBy.toString() !== req.user.id) {
+            return res.status(401).json({ message: 'Not authorized' });
+        }
+
+        // Update fields
+        const { title, description, questions } = req.body;
+        if (title) assignment.title = title;
+        if (description) assignment.description = description;
+        if (questions) assignment.questions = questions;
+
+        await assignment.save();
+
+        res.json({
+            message: 'Assignment updated successfully',
+            assignment
+        });
+    } catch (error) {
+        console.error('Update Assignment Error:', error);
+        res.status(500).json({ message: 'Server error updating assignment' });
+    }
+};
+
+// @desc    Regenerate a single question
+// @route   POST /api/faculty/assignments/:id/regenerate-question
+// @access  Private
+const regenerateQuestion = async (req, res) => {
+    try {
+        const { questionIndex, syllabusId, topics, marksPerQuestion } = req.body;
+        const assignment = await Assignment.findById(req.params.id);
+
+        if (!assignment) {
+            return res.status(404).json({ message: 'Assignment not found' });
+        }
+
+        // Verify ownership
+        if (assignment.createdBy.toString() !== req.user.id) {
+            return res.status(401).json({ message: 'Not authorized' });
+        }
+
+        // Get syllabus content if available
+        let syllabusContent = '';
+        if (syllabusId) {
+            const syllabus = await Syllabus.findById(syllabusId);
+            if (syllabus && syllabus.content) {
+                syllabusContent = syllabus.content.substring(0, 20000);
+            }
+        }
+
+        const prompt = `
+            You are an expert educational assistant. Generate a single new question for an assignment.
+            
+            **Configuration:**
+            - **Topics:** ${topics || "General"}
+            - **Marks:** ${marksPerQuestion || 10}
+            
+            ${syllabusContent ? `**Syllabus Content:**\n${syllabusContent}` : ''}
+            
+            **Instructions:**
+            Generate ONE high-quality question that tests understanding. Make it different from typical questions.
+            
+            **Output Format:**
+            Return a purely JSON object with this structure:
+            {
+                "questionText": "Your question here...",
+                "marks": ${marksPerQuestion || 10},
+                "type": "long_answer"
+            }
+        `;
+
+        const newQuestion = syllabusContent
+            ? await generateJSON(prompt)
+            : await generateJSON(prompt);
+
+        if (!newQuestion || !newQuestion.questionText) {
+            return res.status(500).json({ message: 'Failed to generate question' });
+        }
+
+        res.json(newQuestion);
+    } catch (error) {
+        console.error('Regenerate Question Error:', error);
+        res.status(500).json({ message: 'Server error regenerating question' });
+    }
+};
+
 module.exports = {
     uploadSyllabus,
     getSyllabusList,
@@ -242,5 +338,7 @@ module.exports = {
     generateAssignmentFromSyllabus,
     saveGeneratedAssignment,
     getAssignmentsList,
-    getAssignmentById
+    getAssignmentById,
+    updateAssignment,
+    regenerateQuestion
 };
