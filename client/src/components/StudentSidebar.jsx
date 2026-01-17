@@ -55,8 +55,8 @@ const StudentSidebar = () => {
                             key={item.path}
                             to={item.path}
                             className={`flex items-center gap-4 px-4 py-3.5 rounded-xl text-sm font-medium transition-all duration-200 ${active
-                                    ? 'text-gray-900 dark:text-white bg-transparent'
-                                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800'
+                                ? 'text-gray-900 dark:text-white bg-transparent'
+                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800'
                                 }`}
                         >
                             <item.icon size={22} strokeWidth={1.5} className={active ? "text-gray-900 dark:text-white" : "text-gray-500 dark:text-gray-400"} />

@@ -23,6 +23,8 @@ app.use('/api/courses', require('./routes/course.routes'));
 app.use('/api/submissions', require('./routes/submission.routes'));
 app.use('/api/assignments', require('./routes/assignment.routes'));
 app.use('/api/faculty', require('./routes/faculty.routes'));
+app.use('/api/notifications', require('./routes/notification.routes'));
+app.use('/api/user', require('./routes/user.routes'));
 
 app.get('/', (req, res) => {
   res.send('Elevare LMS API is running');

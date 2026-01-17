@@ -23,6 +23,7 @@ import AssignmentView from './pages/AssignmentView';
 import FacultyCourses from './pages/FacultyCourses';
 import CreateNotification from './pages/CreateNotification';
 import NotificationList from './pages/NotificationList';
+import UserProfile from './pages/UserProfile';
 
 import StudentLayout from './components/StudentLayout';
 import FacultyLayout from './components/FacultyLayout';
@@ -83,7 +84,7 @@ function App() {
                 <Route path="/faculty/notifications" element={<NotificationList />} />
                 <Route path="/faculty/notifications/create" element={<CreateNotification />} />
                 <Route path="/faculty/syllabus" element={<FacultySyllabus />} />
-                <Route path="/faculty/profile" element={<div className="p-4"><h1>Profile</h1><p>Coming Soon</p></div>} />
+                <Route path="/faculty/profile" element={<UserProfile />} />
                 <Route path="/faculty/assignments/generate" element={<AssignmentGenerator />} />
               </Route>
 
@@ -94,7 +95,7 @@ function App() {
                 <Route path="/student/courses" element={<div className="p-4"><h1>My Courses</h1><p>Coming Soon</p></div>} />
                 <Route path="/student/notifications" element={<div className="p-4"><h1>Notifications</h1><p>Coming Soon</p></div>} />
                 <Route path="/student/results" element={<div className="p-4"><h1>Results</h1><p>Coming Soon</p></div>} />
-                <Route path="/student/profile" element={<div className="p-4"><h1>Profile</h1><p>Coming Soon</p></div>} />
+                <Route path="/student/profile" element={<UserProfile />} />
               </Route>
 
               {/* Redirect old routes */}
