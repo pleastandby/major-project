@@ -44,6 +44,27 @@ const AssignmentSchema = new mongoose.Schema({
     visibility: {
         type: Object,
     },
+    syllabusId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Syllabus',
+        required: false,
+    },
+    topics: {
+        type: String,
+    },
+    numQuestions: {
+        type: Number,
+    },
+    marksPerQuestion: {
+        type: Number,
+    },
+    regenerationCount: {
+        type: Number,
+        default: 0,
+    },
+    lastRegenerated: {
+        type: Date,
+    },
 }, {
     timestamps: true,
 });

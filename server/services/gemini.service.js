@@ -72,8 +72,76 @@ const generateJSONWithFile = async (filePath, mimeType, prompt) => {
     }
 };
 
+const generateMultipleQuestions = async (syllabusContent, filePath, mimeType, numQuestions, topics, marksPerQuestion) => {
+    try {
+        const prompt = `
+            You are an expert educational assistant. Generate ${numQuestions} diverse, high-quality questions for an assignment.
+            
+            **Configuration:**
+            - **Number of Questions:** ${numQuestions}
+            - **Topics:** ${topics || "All topics from the syllabus"}
+            - **Marks per Question:** ${marksPerQuestion || 10}
+            
+            **Instructions:**
+            Generate ${numQuestions} unique questions that test the student's understanding of the syllabus.
+            Each question should be distinct and cover different aspects of the material.
+            The questions should be suitable for a written assignment and vary in their focus.
+            
+            **Output Format:**
+            Return a purely JSON array with the following structure:
+            [
+                {
+                    "questionText": "First question...",
+                    "marks": ${marksPerQuestion || 10},
+                    "type": "long_answer"
+                },
+                {
+                    "questionText": "Second question...",
+                    "marks": ${marksPerQuestion || 10},
+                    "type": "long_answer"
+                }
+            ]
+        `;
+
+        let result;
+
+        // If we have file path, use file-based generation
+        if (filePath && mimeType) {
+            console.log('Generating multiple questions with file upload...');
+            result = await generateJSONWithFile(filePath, mimeType, prompt);
+        }
+        // Otherwise use text-based generation
+        else if (syllabusContent && syllabusContent.length > 50) {
+            console.log('Generating multiple questions with text content...');
+            const fullPrompt = `
+                ${prompt}
+                
+                **Syllabus Content:**
+                ${syllabusContent.substring(0, 20000)}
+            `;
+            result = await generateJSON(fullPrompt);
+        }
+        else {
+            throw new Error('No valid syllabus content or file provided');
+        }
+
+        // Validate result is an array
+        if (!Array.isArray(result)) {
+            console.error('Expected array result, got:', typeof result);
+            return null;
+        }
+
+        return result;
+
+    } catch (error) {
+        console.error('Generate Multiple Questions Error:', error);
+        return null;
+    }
+};
+
 module.exports = {
     generateContent,
     generateJSON,
-    generateJSONWithFile
+    generateJSONWithFile,
+    generateMultipleQuestions
 };

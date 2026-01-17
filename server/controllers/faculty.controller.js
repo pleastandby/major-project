@@ -3,7 +3,7 @@ const path = require('path');
 const pdf = require('pdf-parse');
 const Syllabus = require('../models/Syllabus');
 const Assignment = require('../models/Assignment');
-const { generateJSON, generateJSONWithFile } = require('../services/gemini.service');
+const { generateJSON, generateJSONWithFile, generateMultipleQuestions } = require('../services/gemini.service');
 
 // @desc    Upload syllabus
 // @route   POST /api/faculty/syllabus
@@ -269,6 +269,75 @@ const updateAssignment = async (req, res) => {
     }
 };
 
+// @desc    Regenerate all questions in an assignment
+// @route   POST /api/faculty/assignments/:id/regenerate-all
+// @access  Private
+const regenerateAllQuestions = async (req, res) => {
+    try {
+        const { syllabusId, topics, numQuestions, marksPerQuestion } = req.body;
+        const assignment = await Assignment.findById(req.params.id);
+
+        if (!assignment) {
+            return res.status(404).json({ message: 'Assignment not found' });
+        }
+
+        // Verify ownership
+        if (assignment.createdBy.toString() !== req.user.id) {
+            return res.status(401).json({ message: 'Not authorized' });
+        }
+
+        // Use existing question count if not provided
+        const totalQuestions = numQuestions || assignment.questions?.length || 5;
+        const marks = marksPerQuestion || (assignment.questions?.[0]?.marks) || 10;
+
+        // Get syllabus content if available
+        let syllabusContent = '';
+        let syllabusPath = null;
+        let mimeType = null;
+
+        if (syllabusId) {
+            const syllabus = await Syllabus.findById(syllabusId);
+            if (syllabus) {
+                if (syllabus.content && syllabus.content.length > 50) {
+                    syllabusContent = syllabus.content;
+                } else if (fs.existsSync(syllabus.path)) {
+                    syllabusPath = syllabus.path;
+                    mimeType = 'application/pdf';
+                }
+            }
+        }
+
+        // Generate all questions at once for efficiency
+        const newQuestions = await generateMultipleQuestions(
+            syllabusContent,
+            syllabusPath,
+            mimeType,
+            totalQuestions,
+            topics,
+            marks
+        );
+
+        if (!newQuestions || !Array.isArray(newQuestions) || newQuestions.length === 0) {
+            return res.status(500).json({ message: 'Failed to generate questions' });
+        }
+
+        // Update assignment with new questions and metadata
+        assignment.questions = newQuestions;
+        assignment.regenerationCount = (assignment.regenerationCount || 0) + 1;
+        assignment.lastRegenerated = new Date();
+        await assignment.save();
+
+        res.json({
+            message: 'All questions regenerated successfully',
+            assignment
+        });
+
+    } catch (error) {
+        console.error('Regenerate All Questions Error:', error);
+        res.status(500).json({ message: 'Server error regenerating questions' });
+    }
+};
+
 // @desc    Regenerate a single question
 // @route   POST /api/faculty/assignments/:id/regenerate-question
 // @access  Private
@@ -286,12 +355,22 @@ const regenerateQuestion = async (req, res) => {
             return res.status(401).json({ message: 'Not authorized' });
         }
 
+        // Validate question index
+        if (questionIndex !== undefined && (questionIndex < 0 || questionIndex >= assignment.questions.length)) {
+            return res.status(400).json({ message: 'Invalid question index' });
+        }
+
         // Get syllabus content if available
         let syllabusContent = '';
+        let syllabusPath = null;
         if (syllabusId) {
             const syllabus = await Syllabus.findById(syllabusId);
-            if (syllabus && syllabus.content) {
-                syllabusContent = syllabus.content.substring(0, 20000);
+            if (syllabus) {
+                if (syllabus.content && syllabus.content.length > 50) {
+                    syllabusContent = syllabus.content.substring(0, 20000);
+                } else if (fs.existsSync(syllabus.path)) {
+                    syllabusPath = syllabus.path;
+                }
             }
         }
 
@@ -302,10 +381,9 @@ const regenerateQuestion = async (req, res) => {
             - **Topics:** ${topics || "General"}
             - **Marks:** ${marksPerQuestion || 10}
             
-            ${syllabusContent ? `**Syllabus Content:**\n${syllabusContent}` : ''}
-            
             **Instructions:**
             Generate ONE high-quality question that tests understanding. Make it different from typical questions.
+            Ensure the question is clear, specific, and appropriate for the difficulty level.
             
             **Output Format:**
             Return a purely JSON object with this structure:
@@ -316,9 +394,27 @@ const regenerateQuestion = async (req, res) => {
             }
         `;
 
-        const newQuestion = syllabusContent
-            ? await generateJSON(prompt)
-            : await generateJSON(prompt);
+        let newQuestion;
+
+        // Try file-based generation first if we have a path
+        if (syllabusPath) {
+            console.log('Using file-based generation for question...');
+            newQuestion = await generateJSONWithFile(syllabusPath, 'application/pdf', prompt);
+        }
+        // Fall back to text-based generation
+        else if (syllabusContent) {
+            const fullPrompt = `
+                ${prompt}
+                
+                **Syllabus Content:**
+                ${syllabusContent}
+            `;
+            newQuestion = await generateJSON(fullPrompt);
+        }
+        // Generate without syllabus context
+        else {
+            newQuestion = await generateJSON(prompt);
+        }
 
         if (!newQuestion || !newQuestion.questionText) {
             return res.status(500).json({ message: 'Failed to generate question' });
@@ -340,5 +436,6 @@ module.exports = {
     getAssignmentsList,
     getAssignmentById,
     updateAssignment,
+    regenerateAllQuestions,
     regenerateQuestion
 };
