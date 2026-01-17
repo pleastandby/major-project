@@ -118,8 +118,11 @@ const AssignmentList = () => {
                                             {assignment.questions?.length || 0} Questions
                                         </span>
                                         <span className="flex items-center gap-1">
-                                            <Calendar size={14} />
                                             {new Date(assignment.createdAt).toLocaleDateString()}
+                                        </span>
+                                        <span className="flex items-center gap-1">
+                                            <Calendar size={14} className="text-red-400" />
+                                            Due: {assignment.dueDate ? new Date(assignment.dueDate).toLocaleDateString() : 'N/A'}
                                         </span>
                                     </div>
                                 </div>

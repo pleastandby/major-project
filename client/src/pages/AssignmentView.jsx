@@ -10,6 +10,7 @@ const AssignmentView = () => {
     const [loading, setLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
     const [editedQuestions, setEditedQuestions] = useState([]);
+    const [editedMetadata, setEditedMetadata] = useState({ title: '', description: '', dueDate: '' });
     const [saving, setSaving] = useState(false);
     const [regenerating, setRegenerating] = useState(null);
 
@@ -21,6 +22,11 @@ const AssignmentView = () => {
                     const data = await res.json();
                     setAssignment(data);
                     setEditedQuestions(data.questions || []);
+                    setEditedMetadata({
+                        title: data.title,
+                        description: data.description,
+                        dueDate: data.dueDate ? new Date(data.dueDate).toISOString().split('T')[0] : ''
+                    });
                 }
             } catch (err) {
                 console.error('Failed to fetch assignment:', err);
@@ -34,6 +40,11 @@ const AssignmentView = () => {
     const handleEdit = () => {
         setIsEditing(true);
         setEditedQuestions([...assignment.questions]);
+        setEditedMetadata({
+            title: assignment.title,
+            description: assignment.description,
+            dueDate: assignment.dueDate ? new Date(assignment.dueDate).toISOString().split('T')[0] : ''
+        });
     };
 
     const handleCancel = () => {
@@ -47,13 +58,20 @@ const AssignmentView = () => {
         setEditedQuestions(updated);
     };
 
+    const handleMetadataChange = (e) => {
+        setEditedMetadata({ ...editedMetadata, [e.target.name]: e.target.value });
+    };
+
     const handleSave = async () => {
         setSaving(true);
         try {
             const res = await authFetch(`/api/faculty/assignments/${id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ questions: editedQuestions })
+                body: JSON.stringify({
+                    questions: editedQuestions,
+                    ...editedMetadata
+                })
             });
 
             if (res.ok) {
@@ -143,10 +161,22 @@ const AssignmentView = () => {
                 {/* Header */}
                 <div className="border-b border-gray-100 dark:border-gray-700 pb-6 mb-6">
                     <div className="flex items-start justify-between mb-4">
-                        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                            {assignment.title}
-                        </h1>
-                        <div className="flex items-center gap-2">
+                        <div className="flex-1 mr-4">
+                            {isEditing ? (
+                                <input
+                                    type="text"
+                                    name="title"
+                                    value={editedMetadata.title}
+                                    onChange={handleMetadataChange}
+                                    className="text-3xl font-bold text-gray-900 dark:text-white bg-transparent border-b border-gray-300 dark:border-gray-600 focus:border-primary outline-none w-full"
+                                />
+                            ) : (
+                                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                                    {assignment.title}
+                                </h1>
+                            )}
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
                             {assignment.type === 'AI_Generated' && (
                                 <span className="flex items-center gap-1 px-3 py-1 bg-purple-50 text-purple-700 text-sm font-medium rounded-full">
                                     <Sparkles size={14} />
@@ -191,14 +221,45 @@ const AssignmentView = () => {
                             )}
                         </div>
                     </div>
-                    {assignment.description && (
-                        <p className="text-gray-600 dark:text-gray-400 mb-4">{assignment.description}</p>
+
+                    {isEditing ? (
+                        <textarea
+                            name="description"
+                            value={editedMetadata.description}
+                            onChange={handleMetadataChange}
+                            rows={3}
+                            className="w-full text-gray-600 dark:text-gray-400 mb-4 bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg p-3 focus:border-primary outline-none"
+                        />
+                    ) : (
+                        assignment.description && (
+                            <p className="text-gray-600 dark:text-gray-400 mb-4">{assignment.description}</p>
+                        )
                     )}
+
                     <div className="flex items-center gap-4 text-sm text-gray-500">
                         <span className="flex items-center gap-1">
                             <Calendar size={14} />
                             Created: {new Date(assignment.createdAt).toLocaleDateString()}
                         </span>
+
+                        <span className="flex items-center gap-1">
+                            <Calendar size={14} className={isEditing ? "text-primary" : ""} />
+                            {isEditing ? (
+                                <div className="flex items-center gap-2">
+                                    <span className="font-medium text-gray-700 dark:text-gray-300">Due:</span>
+                                    <input
+                                        type="date"
+                                        name="dueDate"
+                                        value={editedMetadata.dueDate}
+                                        onChange={handleMetadataChange}
+                                        className="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm outline-none focus:border-primary"
+                                    />
+                                </div>
+                            ) : (
+                                <span>Due: {assignment.dueDate ? new Date(assignment.dueDate).toLocaleDateString() : 'No Due Date'}</span>
+                            )}
+                        </span>
+
                         <span className="flex items-center gap-1">
                             <FileText size={14} />
                             {assignment.questions?.length || 0} Questions

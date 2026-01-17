@@ -21,6 +21,8 @@ import AssignmentGenerator from './pages/AssignmentGenerator';
 import AssignmentList from './pages/AssignmentList';
 import AssignmentView from './pages/AssignmentView';
 import FacultyCourses from './pages/FacultyCourses';
+import CreateNotification from './pages/CreateNotification';
+import NotificationList from './pages/NotificationList';
 
 import StudentLayout from './components/StudentLayout';
 import FacultyLayout from './components/FacultyLayout';
@@ -78,7 +80,8 @@ function App() {
                 <Route path="/faculty/courses" element={<FacultyCourses />} />
                 <Route path="/faculty/assignments" element={<AssignmentList />} />
                 <Route path="/faculty/assignments/:id" element={<AssignmentView />} />
-                <Route path="/faculty/notifications" element={<div className="p-4"><h1>Notifications</h1><p>Coming Soon</p></div>} />
+                <Route path="/faculty/notifications" element={<NotificationList />} />
+                <Route path="/faculty/notifications/create" element={<CreateNotification />} />
                 <Route path="/faculty/syllabus" element={<FacultySyllabus />} />
                 <Route path="/faculty/profile" element={<div className="p-4"><h1>Profile</h1><p>Coming Soon</p></div>} />
                 <Route path="/faculty/assignments/generate" element={<AssignmentGenerator />} />

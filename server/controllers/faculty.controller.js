@@ -253,10 +253,12 @@ const updateAssignment = async (req, res) => {
         }
 
         // Update fields
-        const { title, description, questions } = req.body;
+        const { title, description, questions, dueDate, maxPoints } = req.body;
         if (title) assignment.title = title;
         if (description) assignment.description = description;
         if (questions) assignment.questions = questions;
+        if (dueDate) assignment.dueDate = dueDate;
+        if (maxPoints) assignment.maxPoints = maxPoints;
 
         await assignment.save();
 
