@@ -91,9 +91,14 @@ const CourseDetails = () => {
                     <div className="flex justify-between items-center">
                         <h2 className="text-xl font-bold text-primary">Assignments</h2>
                         {isCreator && (
-                            <Link to={`/courses/${id}/assignments/create`} className="btn btn-primary text-sm py-2">
-                                + Create Assignment
-                            </Link>
+                            <div className="flex gap-2">
+                                <Link to={`/courses/${id}/assignments/create`} className="btn btn-outline text-sm py-2">
+                                    + Manual
+                                </Link>
+                                <Link to={`/faculty/assignments/generate?courseId=${id}`} className="btn btn-primary text-sm py-2 flex items-center gap-1">
+                                    <span className="text-xs">✨</span> Generate AI
+                                </Link>
+                            </div>
                         )}
                     </div>
 
@@ -138,7 +143,9 @@ const CourseDetails = () => {
                         <h3 className="font-medium text-primary mb-4">Syllabus</h3>
                         <p className="text-sm text-gray-500 mb-4">No syllabus uploaded.</p>
                         {isCreator && (
-                            <button className="btn btn-outline w-full text-sm">Upload Syllabus</button>
+                            <Link to="/faculty/syllabus" className="btn btn-outline w-full text-sm inline-block text-center py-2">
+                                Upload a Syllabus
+                            </Link>
                         )}
                     </div>
                 </div>

@@ -11,7 +11,8 @@ const DashboardCourseCard = ({ course, isFaculty }) => {
                     {course?.title}
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                    {isFaculty ? `Code: ${course?.code}` : `Faculty : ${course?.createdBy?.name || 'Unknown'}`}
+                    <span className="block">Code: {course?.code}</span>
+                    <span className="block">Instructor: {course?.createdBy?.name || 'Unknown'}</span>
                 </p>
                 <Link
                     to={`/courses/${course._id}`}

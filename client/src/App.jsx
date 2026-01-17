@@ -10,6 +10,7 @@ import StudentDashboard from './pages/StudentDashboard';
 import CreateCourse from './pages/CreateCourse';
 import JoinCourse from './pages/JoinCourse';
 import CourseDetails from './pages/CourseDetails';
+import CourseSettings from './pages/CourseSettings';
 import CreateAssignment from './pages/CreateAssignment';
 import AssignmentDetails from './pages/AssignmentDetails';
 import ForgotPassword from './pages/ForgotPassword';
@@ -19,6 +20,7 @@ import FacultySyllabus from './pages/FacultySyllabus';
 import AssignmentGenerator from './pages/AssignmentGenerator';
 import AssignmentList from './pages/AssignmentList';
 import AssignmentView from './pages/AssignmentView';
+import FacultyCourses from './pages/FacultyCourses';
 
 import StudentLayout from './components/StudentLayout';
 import FacultyLayout from './components/FacultyLayout';
@@ -63,6 +65,7 @@ function App() {
                 <Route path="/courses/create" element={<CreateCourse />} />
                 <Route path="/courses/join" element={<JoinCourse />} />
                 <Route path="/courses/:id" element={<CourseDetails />} />
+                <Route path="/courses/:id/settings" element={<CourseSettings />} />
                 <Route path="/courses/:id/assignments/create" element={<CreateAssignment />} />
                 <Route path="/assignments/:id" element={<AssignmentDetails />} />
 
@@ -72,7 +75,7 @@ function App() {
               {/* Faculty Layout Routes (Sidebar) */}
               <Route element={<FacultyLayout />}>
                 <Route path="/faculty/dashboard" element={<FacultyDashboard />} />
-                <Route path="/faculty/courses" element={<div className="p-4"><h1>Manage Courses</h1><p>Coming Soon</p></div>} />
+                <Route path="/faculty/courses" element={<FacultyCourses />} />
                 <Route path="/faculty/assignments" element={<AssignmentList />} />
                 <Route path="/faculty/assignments/:id" element={<AssignmentView />} />
                 <Route path="/faculty/notifications" element={<div className="p-4"><h1>Notifications</h1><p>Coming Soon</p></div>} />

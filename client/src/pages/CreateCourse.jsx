@@ -76,16 +76,24 @@ const CreateCourse = () => {
                         <label className="text-sm font-medium text-primary">Department</label>
                         <select name="department" value={formData.department} onChange={handleChange} className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-link focus:ring-4 focus:ring-link/10 outline-none transition-all bg-white">
                             <option value="">Select Department</option>
-                            <option value="CS">Computer Science</option>
-                            <option value="IT">Information Technology</option>
+                            <option value="Civil Engineering">Civil Engineering</option>
+                            <option value="Computer Engineering">Computer Engineering</option>
+                            <option value="Electronics Engineering">Electronics Engineering</option>
+                            <option value="Electrical and Electronics">Electrical and Electronics</option>
+                            <option value="Automobile Engineering">Automobile Engineering</option>
+                            <option value="Mechanical Engineering">Mechanical Engineering</option>
                         </select>
                     </div>
                     <div className="flex flex-col gap-1.5">
                         <label className="text-sm font-medium text-primary">Semester</label>
                         <select name="semester" value={formData.semester} onChange={handleChange} className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-link focus:ring-4 focus:ring-link/10 outline-none transition-all bg-white">
                             <option value="">Select Semester</option>
-                            <option value="Fall 2024">Fall 2024</option>
-                            <option value="Spring 2025">Spring 2025</option>
+                            <option value="1">Semester 1</option>
+                            <option value="2">Semester 2</option>
+                            <option value="3">Semester 3</option>
+                            <option value="4">Semester 4</option>
+                            <option value="5">Semester 5</option>
+                            <option value="6">Semester 6</option>
                         </select>
                     </div>
                 </div>

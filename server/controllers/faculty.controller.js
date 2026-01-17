@@ -172,7 +172,7 @@ const deleteSyllabus = async (req, res) => {
 // @route   POST /api/faculty/assignments/save
 // @access  Private
 const saveGeneratedAssignment = async (req, res) => {
-    const { title, description, questions, syllabusId, topics, numQuestions, marksPerQuestion } = req.body;
+    const { title, description, questions, syllabusId, topics, numQuestions, marksPerQuestion, courseId } = req.body;
 
     try {
         const assignment = await Assignment.create({
@@ -180,6 +180,7 @@ const saveGeneratedAssignment = async (req, res) => {
             description,
             questions,
             syllabusId,
+            courseId: courseId || null, // Optional Association
             createdBy: req.user.id,
             type: 'AI_Generated',
             topics,

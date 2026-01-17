@@ -1,15 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Loader2, Sparkles, FileText, CheckCircle, AlertCircle } from 'lucide-react';
 
 const AssignmentGenerator = () => {
     const { authFetch } = useAuth();
+    const location = useLocation();
+    const navigate = useNavigate();
 
     // State
+    const [courses, setCourses] = useState([]);
+    const [loadingCourses, setLoadingCourses] = useState(true);
     const [syllabi, setSyllabi] = useState([]);
     const [loadingSyllabi, setLoadingSyllabi] = useState(true);
 
     // Form Inputs
+    const [selectedCourse, setSelectedCourse] = useState('');
     const [selectedSyllabus, setSelectedSyllabus] = useState('');
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
@@ -21,22 +27,38 @@ const AssignmentGenerator = () => {
     const [generatedAssignment, setGeneratedAssignment] = useState(null);
     const [error, setError] = useState('');
 
-    // Fetch Syllabi on Mount
+    // Pre-select course from URL
     useEffect(() => {
-        const fetchSyllabi = async () => {
+        const params = new URLSearchParams(location.search);
+        const courseId = params.get('courseId');
+        if (courseId) {
+            setSelectedCourse(courseId);
+        }
+    }, [location]);
+
+    // Fetch Data on Mount
+    useEffect(() => {
+        const fetchData = async () => {
             try {
-                const res = await authFetch('/api/faculty/syllabus');
-                if (res.ok) {
-                    const data = await res.json();
-                    setSyllabi(data);
+                // Fetch Syllabi
+                const syllabiRes = await authFetch('/api/faculty/syllabus');
+                if (syllabiRes.ok) {
+                    setSyllabi(await syllabiRes.json());
+                }
+
+                // Fetch Courses
+                const coursesRes = await authFetch('/api/courses');
+                if (coursesRes.ok) {
+                    setCourses(await coursesRes.json());
                 }
             } catch (err) {
-                console.error("Failed to fetch syllabi", err);
+                console.error("Failed to fetch data", err);
             } finally {
                 setLoadingSyllabi(false);
+                setLoadingCourses(false);
             }
         };
-        fetchSyllabi();
+        fetchData();
     }, [authFetch]);
 
     const handleGenerate = async (e) => {
@@ -86,6 +108,7 @@ const AssignmentGenerator = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     ...generatedAssignment,
+                    courseId: selectedCourse,
                     syllabusId: selectedSyllabus,
                     topics,
                     numQuestions: parseInt(numQuestions),
@@ -96,8 +119,12 @@ const AssignmentGenerator = () => {
             if (res.ok) {
                 alert('Assignment saved successfully!');
                 setGeneratedAssignment(null);
-                // Optionally redirect to assignments list
-                window.location.href = '/faculty/assignments';
+                // Redirect based on where we came from or default list
+                if (selectedCourse) {
+                    navigate(`/courses/${selectedCourse}`);
+                } else {
+                    navigate('/faculty/assignments');
+                }
             } else {
                 const data = await res.json();
                 alert(data.message || 'Failed to save assignment');
@@ -126,6 +153,29 @@ const AssignmentGenerator = () => {
                     <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Configuration</h2>
 
                     <form onSubmit={handleGenerate} className="space-y-5">
+                        {/* Course Selection */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Select Course (Optional)
+                            </label>
+                            {loadingCourses ? (
+                                <div className="animate-pulse h-10 bg-gray-100 dark:bg-gray-700 rounded-lg"></div>
+                            ) : courses.length > 0 ? (
+                                <select
+                                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all"
+                                    value={selectedCourse}
+                                    onChange={(e) => setSelectedCourse(e.target.value)}
+                                >
+                                    <option value="">-- General / No Course --</option>
+                                    {courses.map(c => (
+                                        <option key={c._id} value={c._id}>{c.title} ({c.code})</option>
+                                    ))}
+                                </select>
+                            ) : (
+                                <p className="text-sm text-gray-500">No courses available.</p>
+                            )}
+                        </div>
+
                         {/* Syllabus Selection */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">

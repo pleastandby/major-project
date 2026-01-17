@@ -85,6 +85,16 @@ const CreateAssignment = () => {
                             <option value="Manual">Manual</option>
                             <option value="AI_Generated">AI Generated</option>
                         </select>
+                        {formData.type === 'AI_Generated' && (
+                            <button
+                                type="button"
+                                onClick={() => navigate(`/faculty/assignments/generate?courseId=${courseId}`)}
+                                className="mt-2 text-sm text-purple-600 hover:text-purple-700 font-medium flex items-center gap-1"
+                            >
+                                <span className="underline">Go to AI Generator</span>
+                                <span>→</span>
+                            </button>
+                        )}
                     </div>
                     <div className="flex flex-col gap-1.5">
                         <label className="text-sm font-medium text-primary">Difficulty</label>

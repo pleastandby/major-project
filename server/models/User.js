@@ -7,6 +7,10 @@ const UserSchema = new mongoose.Schema({
         unique: true,
         lowercase: true,
     },
+    name: {
+        type: String,
+        required: false, // Optional for backward compatibility, but we should make it required for new users
+    },
     passwordHash: {
         type: String,
         required: true,
