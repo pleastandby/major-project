@@ -1,10 +1,32 @@
 import { Link } from 'react-router-dom';
+import { getCourseIcon } from '../utils/iconUtils';
 
 const DashboardCourseCard = ({ course, isFaculty }) => {
     return (
         <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex items-center gap-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
-            {/* Dark Square Icon Placeholder */}
-            <div className="w-20 h-20 bg-gray-700 rounded-lg shrink-0"></div>
+            {/* Course Icon */}
+            <div className={`w-20 h-20 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0 overflow-hidden relative`} style={{ backgroundColor: !course.theme?.logo ? `var(--color-${course.theme?.color || 'blue'}-900)` : 'transparent', background: !course.theme?.logo && course.theme?.color ? `var(--color-${course.theme.color}-900)` : undefined }}>
+                {course.theme?.logo ? (
+                    <img
+                        src={`http://localhost:5000/${course.theme.logo}`}
+                        alt={course.title}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.style.display = 'none';
+                            e.target.parentNode.style.backgroundColor = `var(--color-${course.theme?.color || 'blue'}-900)`;
+                            e.target.parentNode.innerHTML = `<span class="text-2xl font-mono capitalize">${(course.code || 'C').charAt(0).toUpperCase()}</span>`;
+                        }}
+                    />
+                ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                        {(() => {
+                            const Icon = getCourseIcon(course.theme?.icon);
+                            return <Icon size={32} />;
+                        })()}
+                    </div>
+                )}
+            </div>
 
             <div className="flex flex-col gap-1 flex-1 min-w-0">
                 <h3 className="text-base font-bold text-gray-900 dark:text-white truncate" title={course?.title}>

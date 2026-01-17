@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { Camera, Mail, User, Shield, Key, Save, Edit2, Loader2, Phone, MapPin, Briefcase } from 'lucide-react';
 
 const UserProfile = () => {
-    const { authFetch, user, updateUser } = useAuth();
+    const { authFetch, user, updateUser, refreshUser } = useAuth();
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('details'); // details, security
@@ -90,8 +90,11 @@ const UserProfile = () => {
                 const data = await res.json();
                 setProfile(data.profile);
                 setIsEditing(false);
-                // Update global user context if name changed
-                if (updateUser) {
+                // Refresh global user context to update name in banner
+                if (refreshUser) {
+                    await refreshUser();
+                } else if (updateUser) {
+                    // Fallback if refreshUser not available yet (hot reload timing)
                     updateUser({ ...user, name: formData.name });
                 }
                 alert('Profile updated successfully');
@@ -182,7 +185,7 @@ const UserProfile = () => {
                         <button
                             onClick={() => setActiveTab('details')}
                             className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors ${activeTab === 'details'
-                                ? 'bg-primary/5 text-primary border-l-4 border-primary'
+                                ? 'bg-primary/5 text-primary border-l-4 border-primary dark:text-white dark:bg-white/5 dark:border-white'
                                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'
                                 }`}
                         >
@@ -192,7 +195,7 @@ const UserProfile = () => {
                         <button
                             onClick={() => setActiveTab('security')}
                             className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors ${activeTab === 'security'
-                                ? 'bg-primary/5 text-primary border-l-4 border-primary'
+                                ? 'bg-primary/5 text-primary border-l-4 border-primary dark:text-white dark:bg-white/5 dark:border-white'
                                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'
                                 }`}
                         >
@@ -212,7 +215,7 @@ const UserProfile = () => {
                                     onClick={() => setIsEditing(!isEditing)}
                                     className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${isEditing
                                         ? 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
-                                        : 'text-primary hover:bg-primary/5'
+                                        : 'text-primary dark:text-white hover:bg-primary/5 dark:hover:bg-white/10'
                                         }`}
                                 >
                                     {isEditing ? 'Cancel Edit' : 'Edit Profile'}

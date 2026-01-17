@@ -8,12 +8,17 @@ const Profile = require('../models/Profile');
 // @access  Private (Faculty only)
 const createCourse = async (req, res) => {
     try {
-        const { title, code, description, department, semester } = req.body;
+        const { title, code, description, department, semester, themeColor, themeIcon } = req.body;
 
         // Check if course code exists
         const courseExists = await Course.findOne({ code });
         if (courseExists) {
             return res.status(400).json({ message: 'Course code already exists' });
+        }
+
+        let logoPath = null;
+        if (req.file) {
+            logoPath = 'uploads/courses/' + req.file.filename;
         }
 
         const course = await Course.create({
@@ -25,6 +30,11 @@ const createCourse = async (req, res) => {
             meta: {
                 department,
                 semester
+            },
+            theme: {
+                color: themeColor || 'blue',
+                icon: themeIcon || 'text', // Default to 'text' for first letter
+                logo: logoPath
             }
         });
 
@@ -242,6 +252,23 @@ const updateCourse = async (req, res) => {
             course.meta.department = department || course.meta.department;
         }
 
+        if (req.body.themeColor) course.theme.color = req.body.themeColor;
+        if (req.body.themeIcon) course.theme.icon = req.body.themeIcon;
+
+        if (req.file) {
+            // Delete old logo if it exists
+            if (course.theme && course.theme.logo) {
+                const fs = require('fs');
+                const path = require('path');
+                const oldPath = path.join(__dirname, '../', course.theme.logo);
+                if (fs.existsSync(oldPath)) {
+                    fs.unlinkSync(oldPath);
+                }
+            }
+            course.theme.logo = 'uploads/courses/' + req.file.filename;
+            course.theme.icon = 'image'; // Set icon type to image when logo is uploaded
+        }
+
         const updatedCourse = await course.save();
         res.json(updatedCourse);
     } catch (error) {
@@ -274,6 +301,130 @@ const deleteCourse = async (req, res) => {
     }
 };
 
+// @desc    Get all students enrolled in faculty's courses
+// @route   GET /api/courses/students/all
+// @access  Private (Faculty)
+const getFacultyStudents = async (req, res) => {
+    try {
+        // 1. Find all courses created by or instructed by this user
+        const courses = await Course.find({
+            $or: [
+                { createdBy: req.user.id },
+                { instructors: req.user.id }
+            ]
+        }).select('_id title code theme');
+
+        if (courses.length === 0) {
+            return res.json([]);
+        }
+
+        const courseIds = courses.map(c => c._id);
+
+        // 2. Find all enrollments for these courses
+        const enrollments = await Enrollment.find({
+            courseId: { $in: courseIds },
+            roleInCourse: 'student'
+        })
+            .populate('userId', 'name email')
+            .populate('courseId', 'title code theme')
+            .lean();
+
+        // 3. Aggregate by Student
+        const studentMap = new Map();
+
+        // Fetch profiles for names if missing in User object
+        const userIdsToFetch = new Set();
+        enrollments.forEach(e => {
+            if (e.userId && !e.userId.name) {
+                userIdsToFetch.add(e.userId._id);
+            }
+        });
+
+        let profileMap = {};
+        if (userIdsToFetch.size > 0) {
+            const profiles = await Profile.find({ userId: { $in: Array.from(userIdsToFetch) } });
+            profiles.forEach(p => profileMap[p.userId.toString()] = p.name);
+        }
+
+        enrollments.forEach(enrollment => {
+            if (!enrollment.userId) return; // Skip if user deleted
+
+            const studentId = enrollment.userId._id.toString();
+
+            // Fix name if missing
+            if (!enrollment.userId.name && profileMap[studentId]) {
+                enrollment.userId.name = profileMap[studentId];
+            }
+
+            if (!studentMap.has(studentId)) {
+                studentMap.set(studentId, {
+                    _id: studentId,
+                    name: enrollment.userId.name || 'Unknown User',
+                    email: enrollment.userId.email,
+                    enrolledCourses: []
+                });
+            }
+
+            const student = studentMap.get(studentId);
+            // Add course info
+            if (enrollment.courseId) {
+                student.enrolledCourses.push({
+                    _id: enrollment.courseId._id,
+                    title: enrollment.courseId.title,
+                    code: enrollment.courseId.code,
+                    theme: enrollment.courseId.theme,
+                    joinedAt: enrollment.joinedAt
+                });
+            }
+        });
+
+        const students = Array.from(studentMap.values());
+        res.json(students);
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// @desc    Remove a student from a course
+// @route   DELETE /api/courses/:courseId/students/:studentId
+// @access  Private (Faculty)
+const removeStudentFromCourse = async (req, res) => {
+    try {
+        const { courseId, studentId } = req.params;
+
+        // 1. Verify Course Ownership/Instructorship
+        const course = await Course.findById(courseId);
+        if (!course) {
+            return res.status(404).json({ message: 'Course not found' });
+        }
+
+        const isInstructor = course.createdBy.toString() === req.user.id ||
+            course.instructors.includes(req.user.id);
+
+        if (!isInstructor) {
+            return res.status(401).json({ message: 'Not authorized to manage this course' });
+        }
+
+        // 2. Remove Enrollment
+        const deleted = await Enrollment.findOneAndDelete({
+            courseId: courseId,
+            userId: studentId
+        });
+
+        if (!deleted) {
+            return res.status(404).json({ message: 'Student not enrolled in this course' });
+        }
+
+        res.json({ message: 'Student removed from course' });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
 module.exports = {
     createCourse,
     getCourses,
@@ -281,5 +432,7 @@ module.exports = {
     joinCourse,
     getMyCourses,
     updateCourse,
-    deleteCourse
+    deleteCourse,
+    getFacultyStudents,
+    removeStudentFromCourse
 };

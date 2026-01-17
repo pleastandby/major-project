@@ -22,11 +22,11 @@ const StudentSidebar = () => {
     ];
 
     return (
-        <aside className="w-64 min-h-screen bg-white dark:bg-gray-900 sticky top-0 left-0 flex flex-col border-r border-gray-100 dark:border-gray-800 transition-colors duration-200">
+        <aside className="w-64 min-h-screen bg-white dark:bg-[#09090b] sticky top-0 left-0 flex flex-col border-r border-gray-100 dark:border-white/5 transition-colors duration-300">
             {/* Header */}
             <div className="p-6">
                 <Link to="/student/dashboard" className="flex items-center gap-3 text-primary no-underline mb-8">
-                    <div className="bg-gray-100 dark:bg-gray-800 p-2 rounded-lg transition-colors">
+                    <div className="bg-gray-100 dark:bg-white/5 p-2 rounded-lg transition-colors">
                         <GraduationCap size={28} strokeWidth={1.5} className="text-gray-700 dark:text-gray-200" />
                     </div>
                     <div className="flex flex-col">
@@ -41,7 +41,7 @@ const StudentSidebar = () => {
                     <input
                         type="text"
                         placeholder="Search..."
-                        className="w-full bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm pl-10 pr-4 py-3 rounded-xl border-none focus:ring-1 focus:ring-gray-200 dark:focus:ring-gray-700 outline-none transition-colors"
+                        className="w-full bg-gray-50 dark:bg-white/5 text-gray-700 dark:text-gray-200 text-sm pl-10 pr-4 py-3 rounded-xl border-none focus:ring-1 focus:ring-gray-200 dark:focus:ring-white/10 outline-none transition-colors"
                     />
                 </div>
             </div>
@@ -55,11 +55,11 @@ const StudentSidebar = () => {
                             key={item.path}
                             to={item.path}
                             className={`flex items-center gap-4 px-4 py-3.5 rounded-xl text-sm font-medium transition-all duration-200 ${active
-                                ? 'text-gray-900 dark:text-white bg-transparent'
-                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800'
+                                ? 'bg-primary text-white shadow-xl shadow-primary/10'
+                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/5'
                                 }`}
                         >
-                            <item.icon size={22} strokeWidth={1.5} className={active ? "text-gray-900 dark:text-white" : "text-gray-500 dark:text-gray-400"} />
+                            <item.icon size={22} strokeWidth={1.5} className={active ? "text-white" : "text-gray-500 dark:text-gray-400"} />
                             <span>{item.label}</span>
                         </Link>
                     );

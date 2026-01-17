@@ -12,18 +12,27 @@ const StudentDashboard = () => {
     const [loading, setLoading] = useState(true);
 
 
+    const [notifications, setNotifications] = useState([]);
+
     useEffect(() => {
-        const fetchCourses = async () => {
+        const fetchData = async () => {
             try {
-                const res = await authFetch('/api/courses/my');
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data && Array.isArray(data.enrolled)) {
-                        setCourses(data.enrolled);
-                    } else {
-                        setCourses([]);
-                    }
+                // Parallel fetch
+                const [coursesRes, notifsRes] = await Promise.all([
+                    authFetch('/api/courses/my'),
+                    authFetch('/api/notifications')
+                ]);
+
+                if (coursesRes.ok) {
+                    const data = await coursesRes.json();
+                    setCourses(Array.isArray(data.enrolled) ? data.enrolled : []);
                 }
+
+                if (notifsRes.ok) {
+                    const data = await notifsRes.json();
+                    setNotifications(Array.isArray(data) ? data : []);
+                }
+
             } catch (err) {
                 console.error(err);
             } finally {
@@ -31,9 +40,7 @@ const StudentDashboard = () => {
             }
         };
 
-
-
-        fetchCourses();
+        fetchData();
     }, [authFetch]);
 
     return (
@@ -89,18 +96,48 @@ const StudentDashboard = () => {
 
                 {/* Right Column (Notifications) - Takes 1 col */}
                 <div className="lg:col-span-1">
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Notification</h2>
-                    <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-700 min-h-[500px]">
-                        {/* Mock Notification Item */}
-                        <div className="flex gap-3 items-start mb-4 p-2 hover:bg-white dark:hover:bg-gray-700 rounded-lg transition-colors cursor-pointer">
-                            <div className="bg-red-100 p-1.5 rounded-full shrink-0">
-                                <AlertTriangle className="text-red-500 w-5 h-5" />
+                    <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Notifications</h2>
+                        <Link to="/student/notifications" className="text-sm text-primary hover:underline">View All</Link>
+                    </div>
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-700 min-h-[500px] overflow-y-auto custom-scrollbar">
+                        {loading ? (
+                            <div className="flex justify-center py-10">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                             </div>
-                            <div className="overflow-hidden">
-                                <h4 className="font-semibold text-sm text-gray-800 dark:text-gray-200 truncate">Pending Assignment...</h4>
-                                <p className="text-xs text-gray-500 truncate">CS2: DBMS Assignment1</p>
+                        ) : notifications.length > 0 ? (
+                            <div className="space-y-3">
+                                {notifications.slice(0, 5).map(notif => (
+                                    <div key={notif._id} className={`flex gap-3 items-start p-3 rounded-xl transition-all cursor-pointer border ${notif.alertLevel === 'critical'
+                                        ? 'bg-red-50 border-red-100 hover:bg-red-100 dark:bg-red-900/10 dark:border-red-900/30'
+                                        : notif.alertLevel === 'warning'
+                                            ? 'bg-yellow-50 border-yellow-100 hover:bg-yellow-100 dark:bg-yellow-900/10 dark:border-yellow-900/30'
+                                            : 'bg-white border-gray-100 hover:bg-gray-100 dark:bg-gray-700/50 dark:border-gray-600 dark:hover:bg-gray-700'
+                                        }`}>
+                                        <div className={`p-2 rounded-full shrink-0 ${notif.alertLevel === 'critical' ? 'bg-red-100 text-red-600 dark:bg-red-900/50 dark:text-red-400' :
+                                            notif.alertLevel === 'warning' ? 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/50 dark:text-yellow-400' :
+                                                'bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400'
+                                            }`}>
+                                            <AlertTriangle size={16} />
+                                        </div>
+                                        <div className="overflow-hidden">
+                                            <h4 className={`font-semibold text-sm truncate ${notif.alertLevel === 'critical' ? 'text-red-700 dark:text-red-400' :
+                                                'text-gray-800 dark:text-gray-200'
+                                                }`}>{notif.title}</h4>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mt-0.5">{notif.message}</p>
+                                            <span className="text-[10px] text-gray-400 mt-1 block">{new Date(notif.createdAt).toLocaleDateString()}</span>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
-                        </div>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center h-48 text-center text-gray-400">
+                                <div className="bg-gray-200 dark:bg-gray-700 p-3 rounded-full mb-3">
+                                    <AlertTriangle size={24} className="text-gray-400 dark:text-gray-500" />
+                                </div>
+                                <p className="text-sm">No notifications yet</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

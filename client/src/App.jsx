@@ -24,6 +24,7 @@ import FacultyCourses from './pages/FacultyCourses';
 import CreateNotification from './pages/CreateNotification';
 import NotificationList from './pages/NotificationList';
 import UserProfile from './pages/UserProfile';
+import StudentList from './pages/StudentList';
 
 import StudentLayout from './components/StudentLayout';
 import FacultyLayout from './components/FacultyLayout';
@@ -84,6 +85,7 @@ function App() {
                 <Route path="/faculty/notifications" element={<NotificationList />} />
                 <Route path="/faculty/notifications/create" element={<CreateNotification />} />
                 <Route path="/faculty/syllabus" element={<FacultySyllabus />} />
+                <Route path="/faculty/students" element={<StudentList />} />
                 <Route path="/faculty/profile" element={<UserProfile />} />
                 <Route path="/faculty/assignments/generate" element={<AssignmentGenerator />} />
               </Route>

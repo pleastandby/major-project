@@ -127,7 +127,7 @@ const AssignmentList = () => {
                                     </div>
                                 </div>
                                 <div className="flex flex-col gap-2">
-                                    <button className="flex items-center gap-2 px-4 py-2 text-primary hover:bg-primary/10 rounded-lg transition-colors">
+                                    <button className="flex items-center gap-2 px-4 py-2 text-primary dark:text-white hover:bg-primary/10 dark:hover:bg-white/10 rounded-lg transition-colors">
                                         <Eye size={16} />
                                         View
                                     </button>
