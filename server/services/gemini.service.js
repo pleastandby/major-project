@@ -139,9 +139,81 @@ const generateMultipleQuestions = async (syllabusContent, filePath, mimeType, nu
     }
 };
 
+const regenerateSingleQuestion = async (syllabusContent, syllabusPath, topic, marks, oldQuestion) => {
+    try {
+        const prompt = `
+            You are an expert educational assistant. Regenerate a SINGLE question for an assignment.
+            
+            **Configuration:**
+            - **Topic:** ${topic || "General"}
+            - **Marks:** ${marks || 10}
+            
+            **Old Question (to replace):**
+            "${oldQuestion}"
+            
+            **Instructions:**
+            Generate EXACTLY ONE new and different high-quality question that tests similar concepts.
+            Do NOT generate a list of questions.
+            Do NOT generate an array.
+            Return ONLY a single JSON object.
+            
+            **Output Format:**
+            {
+                "questionText": "Your single new question text here...",
+                "marks": ${marks || 10},
+                "type": "long_answer"
+            }
+        `;
+
+        let result;
+
+        console.log('Regenerating single question...');
+
+        // 1. Try file-based generation
+        if (syllabusPath) {
+            console.log('Using file-based generation for regeneration...');
+            // Use 1.5-flash or 2.5-flash depending on stability. Using 1.5-flash for JSON mode specifically here.
+            // Actually, sticking to the pattern of separate config for reliability.
+            // Re-using generateJSONWithFile logic but with specific model config if needed.
+            // For simplicity, let's reuse generateJSONWithFile but make sure it uses a model that supports JSON if possible.
+            // Since we reverted, generateJSONWithFile uses 2.5-flash.
+            result = await generateJSONWithFile(syllabusPath, 'application/pdf', prompt);
+        }
+        // 2. Text-based generation
+        else if (syllabusContent) {
+            console.log('Using text-based generation for regeneration...');
+            const fullPrompt = `
+                ${prompt}
+                
+                **Syllabus Content:**
+                ${syllabusContent.substring(0, 20000)}
+            `;
+            result = await generateJSON(fullPrompt);
+        }
+        // 3. Context-free generation (fallback)
+        else {
+            console.log('Using context-free generation for regeneration...');
+            result = await generateJSON(prompt);
+        }
+
+        // Safety check: if model returned an array, take the first item
+        if (Array.isArray(result)) {
+            console.log('Model returned array, picking first item...');
+            result = result[0];
+        }
+
+        return result;
+
+    } catch (error) {
+        console.error('Regenerate Single Question Error:', error);
+        return null;
+    }
+};
+
 module.exports = {
     generateContent,
     generateJSON,
     generateJSONWithFile,
-    generateMultipleQuestions
+    generateMultipleQuestions,
+    regenerateSingleQuestion
 };

@@ -3,7 +3,7 @@ const path = require('path');
 const pdf = require('pdf-parse');
 const Syllabus = require('../models/Syllabus');
 const Assignment = require('../models/Assignment');
-const { generateJSON, generateJSONWithFile, generateMultipleQuestions } = require('../services/gemini.service');
+const { generateJSON, generateJSONWithFile, generateMultipleQuestions, regenerateSingleQuestion } = require('../services/gemini.service');
 
 // @desc    Upload syllabus
 // @route   POST /api/faculty/syllabus
@@ -360,6 +360,8 @@ const regenerateQuestion = async (req, res) => {
             return res.status(400).json({ message: 'Invalid question index' });
         }
 
+        const oldQuestion = assignment.questions[questionIndex].questionText;
+
         // Get syllabus content if available
         let syllabusContent = '';
         let syllabusPath = null;
@@ -367,63 +369,58 @@ const regenerateQuestion = async (req, res) => {
             const syllabus = await Syllabus.findById(syllabusId);
             if (syllabus) {
                 if (syllabus.content && syllabus.content.length > 50) {
-                    syllabusContent = syllabus.content.substring(0, 20000);
+                    syllabusContent = syllabus.content;
                 } else if (fs.existsSync(syllabus.path)) {
                     syllabusPath = syllabus.path;
                 }
             }
         }
 
-        const prompt = `
-            You are an expert educational assistant. Generate a single new question for an assignment.
-            
-            **Configuration:**
-            - **Topics:** ${topics || "General"}
-            - **Marks:** ${marksPerQuestion || 10}
-            
-            **Instructions:**
-            Generate ONE high-quality question that tests understanding. Make it different from typical questions.
-            Ensure the question is clear, specific, and appropriate for the difficulty level.
-            
-            **Output Format:**
-            Return a purely JSON object with this structure:
-            {
-                "questionText": "Your question here...",
-                "marks": ${marksPerQuestion || 10},
-                "type": "long_answer"
-            }
-        `;
-
-        let newQuestion;
-
-        // Try file-based generation first if we have a path
-        if (syllabusPath) {
-            console.log('Using file-based generation for question...');
-            newQuestion = await generateJSONWithFile(syllabusPath, 'application/pdf', prompt);
-        }
-        // Fall back to text-based generation
-        else if (syllabusContent) {
-            const fullPrompt = `
-                ${prompt}
-                
-                **Syllabus Content:**
-                ${syllabusContent}
-            `;
-            newQuestion = await generateJSON(fullPrompt);
-        }
-        // Generate without syllabus context
-        else {
-            newQuestion = await generateJSON(prompt);
-        }
+        // Call dedicated service method
+        const newQuestion = await regenerateSingleQuestion(
+            syllabusContent,
+            syllabusPath,
+            topics,
+            marksPerQuestion || assignment.questions[questionIndex].marks,
+            oldQuestion
+        );
 
         if (!newQuestion || !newQuestion.questionText) {
-            return res.status(500).json({ message: 'Failed to generate question' });
+            console.error('Gemini Regeneration Failed for Single Question');
+            return res.status(500).json({ message: 'Failed to regenerate question from AI service' });
         }
 
+        console.log('Question Regenerated Successfully:', newQuestion.questionText);
         res.json(newQuestion);
+
     } catch (error) {
-        console.error('Regenerate Question Error:', error);
+        console.error('Regenerate Question Controller Error:', error);
         res.status(500).json({ message: 'Server error regenerating question' });
+    }
+};
+
+// @desc    Delete assignment
+// @route   DELETE /api/faculty/assignments/:id
+// @access  Private
+const deleteAssignment = async (req, res) => {
+    try {
+        const assignment = await Assignment.findById(req.params.id);
+
+        if (!assignment) {
+            return res.status(404).json({ message: 'Assignment not found' });
+        }
+
+        // Verify ownership
+        if (assignment.createdBy.toString() !== req.user.id) {
+            return res.status(401).json({ message: 'Not authorized' });
+        }
+
+        await assignment.deleteOne();
+
+        res.json({ message: 'Assignment removed' });
+    } catch (error) {
+        console.error('Delete Assignment Error:', error);
+        res.status(500).json({ message: 'Server error deleting assignment' });
     }
 };
 
@@ -437,5 +434,6 @@ module.exports = {
     getAssignmentById,
     updateAssignment,
     regenerateAllQuestions,
-    regenerateQuestion
+    regenerateQuestion,
+    deleteAssignment
 };

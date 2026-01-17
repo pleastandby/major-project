@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
-import { FileText, Calendar, Eye, Sparkles } from 'lucide-react';
+import { FileText, Calendar, Eye, Sparkles, Trash2 } from 'lucide-react';
 
 const AssignmentList = () => {
     const { authFetch } = useAuth();
@@ -24,6 +24,22 @@ const AssignmentList = () => {
         };
         fetchAssignments();
     }, [authFetch]);
+
+    const handleDelete = async (id) => {
+        try {
+            const res = await authFetch(`/api/faculty/assignments/${id}`, {
+                method: 'DELETE',
+            });
+            if (res.ok) {
+                setAssignments(assignments.filter(a => a._id !== id));
+            } else {
+                alert('Failed to delete assignment');
+            }
+        } catch (err) {
+            console.error('Error deleting assignment:', err);
+            alert('Error deleting assignment');
+        }
+    };
 
     if (loading) {
         return (
@@ -107,10 +123,24 @@ const AssignmentList = () => {
                                         </span>
                                     </div>
                                 </div>
-                                <button className="flex items-center gap-2 px-4 py-2 text-primary hover:bg-primary/10 rounded-lg transition-colors">
-                                    <Eye size={16} />
-                                    View
-                                </button>
+                                <div className="flex flex-col gap-2">
+                                    <button className="flex items-center gap-2 px-4 py-2 text-primary hover:bg-primary/10 rounded-lg transition-colors">
+                                        <Eye size={16} />
+                                        View
+                                    </button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            if (window.confirm('Are you sure you want to delete this assignment?')) {
+                                                handleDelete(assignment._id);
+                                            }
+                                        }}
+                                        className="flex items-center gap-2 px-4 py-2 text-white bg-black hover:bg-gray-800 rounded-lg transition-colors"
+                                    >
+                                        <Trash2 size={16} />
+                                        Delete
+                                    </button>
+                                </div>
                             </div>
                         </Link>
                     ))}
