@@ -28,6 +28,10 @@ import StudentList from './pages/StudentList';
 
 import StudentLayout from './components/StudentLayout';
 import FacultyLayout from './components/FacultyLayout';
+import StudentAssignments from './components/StudentAssignments';
+import StudentAssignmentSubmission from './components/StudentAssignmentSubmission';
+import StudentCourses from './components/StudentCourses';
+import StudentCourseDetails from './pages/StudentCourseDetails';
 
 // Placeholders for now
 const NotFound = () => <h1>404 Not Found</h1>;
@@ -93,9 +97,11 @@ function App() {
               {/* Student Layout Routes (Sidebar) */}
               <Route element={<StudentLayout />}>
                 <Route path="/student/dashboard" element={<StudentDashboard />} />
-                <Route path="/student/assignments" element={<div className="p-4"><h1>Assignments</h1><p>Coming Soon</p></div>} />
-                <Route path="/student/courses" element={<div className="p-4"><h1>My Courses</h1><p>Coming Soon</p></div>} />
-                <Route path="/student/notifications" element={<div className="p-4"><h1>Notifications</h1><p>Coming Soon</p></div>} />
+                <Route path="/student/assignments" element={<StudentAssignments />} />
+                <Route path="/student/assignments/:id" element={<StudentAssignmentSubmission />} />
+                <Route path="/student/courses" element={<StudentCourses />} />
+                <Route path="/student/courses/:id" element={<StudentCourseDetails />} />
+                <Route path="/student/notifications" element={<NotificationList />} />
                 <Route path="/student/results" element={<div className="p-4"><h1>Results</h1><p>Coming Soon</p></div>} />
                 <Route path="/student/profile" element={<UserProfile />} />
               </Route>

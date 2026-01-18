@@ -1,12 +1,31 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FileText, BookOpen, Bell, PieChart, User, LogOut, Search, Sun, GraduationCap } from 'lucide-react';
+import { LayoutDashboard, FileText, BookOpen, Bell, PieChart, User, LogOut, Search, Sun, GraduationCap, ChevronDown, ChevronRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useState, useEffect } from 'react';
 
 const StudentSidebar = () => {
     const location = useLocation();
-    const { logout } = useAuth();
+    const { logout, authFetch } = useAuth();
     const { isDarkMode, toggleTheme } = useTheme();
+
+    const [courses, setCourses] = useState([]);
+    const [isCoursesExpanded, setIsCoursesExpanded] = useState(true);
+
+    useEffect(() => {
+        const fetchCourses = async () => {
+            try {
+                const res = await authFetch('/api/courses/my');
+                if (res.ok) {
+                    const data = await res.json();
+                    setCourses(data.enrolled || []);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        };
+        fetchCourses();
+    }, [authFetch]);
 
     const isActive = (path) => {
         return location.pathname === path || location.pathname.startsWith(`${path}/`);
@@ -15,7 +34,7 @@ const StudentSidebar = () => {
     const navItems = [
         { path: '/student/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
         { path: '/student/assignments', icon: FileText, label: 'Assignments' },
-        { path: '/student/courses', icon: BookOpen, label: 'Courses' },
+        { path: '/student/courses', icon: BookOpen, label: 'Courses', hasSubmenu: true },
         { path: '/student/notifications', icon: Bell, label: 'Notifications' },
         { path: '/student/results', icon: PieChart, label: 'Results' },
         { path: '/student/profile', icon: User, label: 'Profile' }
@@ -47,9 +66,66 @@ const StudentSidebar = () => {
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 px-4 space-y-1">
+            <nav className="flex-1 px-4 space-y-1 overflow-y-auto custom-scrollbar">
                 {navItems.map((item) => {
                     const active = isActive(item.path);
+
+                    if (item.label === 'Courses') {
+                        return (
+                            <div key={item.path}>
+                                <div className="flex items-center justify-between group">
+                                    <Link
+                                        to={item.path}
+                                        className={`flex-1 flex items-center gap-4 px-4 py-3.5 rounded-xl text-sm font-medium transition-all duration-200 ${active && !isCoursesExpanded
+                                            ? 'bg-primary text-white shadow-xl shadow-primary/10'
+                                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/5'
+                                            }`}
+                                    >
+                                        <item.icon size={22} strokeWidth={1.5} className={active && !isCoursesExpanded ? "text-white" : "text-gray-500 dark:text-gray-400"} />
+                                        <span>{item.label}</span>
+                                    </Link>
+                                    <button
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            setIsCoursesExpanded(!isCoursesExpanded);
+                                        }}
+                                        className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                                    >
+                                        {isCoursesExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                                    </button>
+                                </div>
+
+                                {/* Submenu for Courses */}
+                                {isCoursesExpanded && (
+                                    <div className="ml-4 pl-4 border-l border-gray-100 dark:border-white/5 space-y-1 mt-1 mb-2">
+                                        {courses.length > 0 ? (
+                                            courses.map(course => (
+                                                <Link
+                                                    key={course._id}
+                                                    to={`/student/courses/${course._id}`}
+                                                    className={`block px-4 py-2 rounded-lg text-sm transition-colors ${isActive(`/student/courses/${course._id}`)
+                                                            ? 'text-primary font-medium bg-primary/5 dark:bg-primary/10'
+                                                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5'
+                                                        }`}
+                                                >
+                                                    <span className="truncate block">{course.title}</span>
+                                                </Link>
+                                            ))
+                                        ) : (
+                                            <span className="block px-4 py-2 text-xs text-gray-400 italic">No courses enrolled</span>
+                                        )}
+                                        <Link
+                                            to="/courses/join"
+                                            className="block px-4 py-2 text-xs text-primary hover:underline font-medium"
+                                        >
+                                            + Join new course
+                                        </Link>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    }
+
                     return (
                         <Link
                             key={item.path}

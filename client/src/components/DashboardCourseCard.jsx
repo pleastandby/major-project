@@ -3,7 +3,7 @@ import { getCourseIcon } from '../utils/iconUtils';
 
 const DashboardCourseCard = ({ course, isFaculty }) => {
     return (
-        <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex items-center gap-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
+        <div className="bg-white dark:bg-[#09090b] rounded-2xl border border-gray-100 dark:border-white/5 p-4 flex items-center gap-4 hover:shadow-md transition-all duration-300 group">
             {/* Course Icon */}
             <div className={`w-20 h-20 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0 overflow-hidden relative`} style={{ backgroundColor: !course.theme?.logo ? `var(--color-${course.theme?.color || 'blue'}-900)` : 'transparent', background: !course.theme?.logo && course.theme?.color ? `var(--color-${course.theme.color}-900)` : undefined }}>
                 {course.theme?.logo ? (
@@ -37,10 +37,10 @@ const DashboardCourseCard = ({ course, isFaculty }) => {
                     <span className="block">Instructor: {course?.createdBy?.name || 'Unknown'}</span>
                 </p>
                 <Link
-                    to={`/courses/${course._id}`}
-                    className="mt-2 text-primary text-sm font-medium border border-gray-300 dark:border-gray-600 rounded-full px-4 py-1 w-fit hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-center"
+                    to={isFaculty ? `/courses/${course._id}` : `/student/courses/${course._id}`}
+                    className="mt-2 btn btn-outline btn-sm text-xs rounded-full w-fit px-4"
                 >
-                    View
+                    View Course
                 </Link>
             </div>
         </div>

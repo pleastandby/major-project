@@ -425,6 +425,98 @@ const removeStudentFromCourse = async (req, res) => {
     }
 };
 
+// @desc    Leave a course
+// @route   DELETE /api/courses/:id/leave
+// @access  Private (Student)
+const leaveCourse = async (req, res) => {
+    try {
+        const courseId = req.params.id;
+
+        // Check if enrolled
+        const enrollment = await Enrollment.findOne({
+            courseId: courseId,
+            userId: req.user.id,
+            roleInCourse: 'student'
+        });
+
+        if (!enrollment) {
+            return res.status(404).json({ message: 'You are not enrolled in this course' });
+        }
+
+        await enrollment.deleteOne();
+
+        res.json({ message: 'Successfully left the course' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// @desc    Get all students enrolled in a course (for Student view)
+// @route   GET /api/courses/:id/students
+// @access  Private (Enrolled Students & Faculty)
+const getCourseStudents = async (req, res) => {
+    try {
+        const courseId = req.params.id;
+
+        // 1. Verify Enrollment or Instructorship
+        const isInstructor = await Course.exists({ _id: courseId, $or: [{ createdBy: req.user.id }, { instructors: req.user.id }] });
+
+        let isEnrolled = false;
+        if (!isInstructor) {
+            isEnrolled = await Enrollment.exists({
+                courseId: courseId,
+                userId: req.user.id,
+                roleInCourse: 'student'
+            });
+        }
+
+        if (!isInstructor && !isEnrolled) {
+            return res.status(401).json({ message: 'Not authorized to view classmates' });
+        }
+
+        // 2. Fetch Enrolled Students
+        const enrollments = await Enrollment.find({
+            courseId: courseId,
+            roleInCourse: 'student'
+        })
+            .populate('userId', 'name email') // Minimal info
+            .select('userId joinedAt');
+
+        // Filter out if user is null (deleted) and map
+        const students = enrollments
+            .filter(e => e.userId)
+            .map(e => ({
+                _id: e.userId._id,
+                name: e.userId.name,
+                email: e.userId.email, // Consider hiding email if privacy needed
+                joinedAt: e.joinedAt
+            }));
+
+        // Fetch profiles for avatars/bios
+        const userIds = students.map(s => s._id);
+        const profiles = await Profile.find({ userId: { $in: userIds } }).select('userId bio name');
+
+        const profileMap = {};
+        profiles.forEach(p => profileMap[p.userId.toString()] = p);
+
+        // Merge profile info
+        students.forEach(s => {
+            const profile = profileMap[s._id.toString()];
+            if (profile) {
+                if (!s.name) s.name = profile.name;
+                s.bio = profile.bio;
+            }
+        });
+
+        res.json(students);
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
 module.exports = {
     createCourse,
     getCourses,
@@ -434,5 +526,7 @@ module.exports = {
     updateCourse,
     deleteCourse,
     getFacultyStudents,
-    removeStudentFromCourse
+    removeStudentFromCourse,
+    leaveCourse,
+    getCourseStudents
 };

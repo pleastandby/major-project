@@ -108,20 +108,20 @@ const StudentDashboard = () => {
                         ) : notifications.length > 0 ? (
                             <div className="space-y-3">
                                 {notifications.slice(0, 5).map(notif => (
-                                    <div key={notif._id} className={`flex gap-3 items-start p-3 rounded-xl transition-all cursor-pointer border ${notif.alertLevel === 'critical'
+                                    <div key={notif._id} className={`flex gap-3 items-start p-3 rounded-xl transition-all cursor-pointer border ${notif.alertLevel === 'red'
                                         ? 'bg-red-50 border-red-100 hover:bg-red-100 dark:bg-red-900/10 dark:border-red-900/30'
-                                        : notif.alertLevel === 'warning'
+                                        : notif.alertLevel === 'yellow'
                                             ? 'bg-yellow-50 border-yellow-100 hover:bg-yellow-100 dark:bg-yellow-900/10 dark:border-yellow-900/30'
                                             : 'bg-white border-gray-100 hover:bg-gray-100 dark:bg-gray-700/50 dark:border-gray-600 dark:hover:bg-gray-700'
                                         }`}>
-                                        <div className={`p-2 rounded-full shrink-0 ${notif.alertLevel === 'critical' ? 'bg-red-100 text-red-600 dark:bg-red-900/50 dark:text-red-400' :
-                                            notif.alertLevel === 'warning' ? 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/50 dark:text-yellow-400' :
+                                        <div className={`p-2 rounded-full shrink-0 ${notif.alertLevel === 'red' ? 'bg-red-100 text-red-600 dark:bg-red-900/50 dark:text-red-400' :
+                                            notif.alertLevel === 'yellow' ? 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/50 dark:text-yellow-400' :
                                                 'bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400'
                                             }`}>
                                             <AlertTriangle size={16} />
                                         </div>
                                         <div className="overflow-hidden">
-                                            <h4 className={`font-semibold text-sm truncate ${notif.alertLevel === 'critical' ? 'text-red-700 dark:text-red-400' :
+                                            <h4 className={`font-semibold text-sm truncate ${notif.alertLevel === 'red' ? 'text-red-700 dark:text-red-400' :
                                                 'text-gray-800 dark:text-gray-200'
                                                 }`}>{notif.title}</h4>
                                             <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mt-0.5">{notif.message}</p>

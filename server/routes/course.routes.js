@@ -1,8 +1,19 @@
 const express = require('express');
 const router = express.Router();
-const { createCourse, getCourses, getCourse, joinCourse, getMyCourses, updateCourse, deleteCourse, getFacultyStudents, removeStudentFromCourse } = require('../controllers/course.controller');
+const {
+    createCourse,
+    getCourses,
+    getCourse,
+    joinCourse,
+    getMyCourses,
+    updateCourse,
+    deleteCourse,
+    getFacultyStudents,
+    removeStudentFromCourse,
+    leaveCourse,
+    getCourseStudents
+} = require('../controllers/course.controller');
 const { protect } = require('../middleware/authMiddleware');
-
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -37,9 +48,11 @@ const upload = multer({
 router.get('/', protect, getCourses);
 router.post('/', protect, upload.single('logo'), createCourse);
 router.get('/my', protect, getMyCourses);
-router.get('/students/all', protect, getFacultyStudents); // Add before /:id
+router.get('/students/all', protect, getFacultyStudents);
 router.post('/join', protect, joinCourse);
 router.delete('/:courseId/students/:studentId', protect, removeStudentFromCourse);
+router.delete('/:id/leave', protect, leaveCourse);
+router.get('/:id/students', protect, getCourseStudents);
 
 router.route('/:id')
     .get(protect, getCourse)

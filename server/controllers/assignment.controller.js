@@ -4,6 +4,11 @@ const Course = require('../models/Course');
 // @desc    Create a new assignment
 // @route   POST /api/assignments
 // @access  Private (Faculty)
+const Enrollment = require('../models/Enrollment');
+
+// @desc    Create a new assignment
+// @route   POST /api/assignments
+// @access  Private (Faculty)
 const createAssignment = async (req, res) => {
     try {
         const { courseId, title, description, dueDate, maxPoints, type, difficulty } = req.body;
@@ -54,7 +59,7 @@ const getAssignmentsByCourse = async (req, res) => {
 // @access  Private
 const getAssignment = async (req, res) => {
     try {
-        const assignment = await Assignment.findById(req.params.id);
+        const assignment = await Assignment.findById(req.params.id).populate('courseId', 'title courseCode');
         if (!assignment) {
             return res.status(404).json({ message: 'Assignment not found' });
         }
@@ -65,8 +70,40 @@ const getAssignment = async (req, res) => {
     }
 };
 
+// @desc    Get all assignments for a student (based on enrollments)
+// @route   GET /api/assignments/student/all
+// @access  Private (Student)
+const getStudentAssignments = async (req, res) => {
+    try {
+        // Find all active enrollments for the student
+        const enrollments = await Enrollment.find({
+            userId: req.user.id,
+            status: 'active'
+        });
+
+        if (!enrollments.length) {
+            return res.json([]);
+        }
+
+        const courseIds = enrollments.map(enrollment => enrollment.courseId);
+
+        // Find assignments for these courses
+        const assignments = await Assignment.find({
+            courseId: { $in: courseIds }
+        })
+            .populate('courseId', 'title courseCode')
+            .sort({ dueDate: 1 }); // Sort by due date (soonest first)
+
+        res.json(assignments);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
 module.exports = {
     createAssignment,
     getAssignmentsByCourse,
-    getAssignment
+    getAssignment,
+    getStudentAssignments
 };
