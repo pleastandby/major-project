@@ -6,6 +6,66 @@ const { generateJSON } = require('../services/gemini.service');
 // @desc    Upload submission and run OCR
 // @route   POST /api/submissions/upload
 // @access  Private (Student)
+// Helper to perform AI grading
+const evaluateSubmissionAI = async (submission, assignment) => {
+    // Construct a detailed context for the AI
+    let assignmentContext = `Title: ${assignment.title}\nDescription: ${assignment.description}\nMax Points: ${assignment.maxPoints}\n`;
+
+    if (assignment.questions && assignment.questions.length > 0) {
+        assignmentContext += `\nSPECIFIC QUESTIONS:\n${JSON.stringify(assignment.questions, null, 2)}\n`;
+    }
+
+    // Calculate dynamic max points if questions exist
+    let dynamicMaxPoints = assignment.maxPoints;
+    if (assignment.questions && assignment.questions.length > 0) {
+        const questionsTotal = assignment.questions.reduce((sum, q) => sum + (Number(q.marks) || 0), 0);
+        if (questionsTotal > 0) {
+            dynamicMaxPoints = questionsTotal;
+        }
+    }
+
+    // Update context with true max points
+    assignmentContext = assignmentContext.replace(`Max Points: ${assignment.maxPoints}`, `Max Points: ${dynamicMaxPoints}`);
+
+    const prompt = `
+        You are an expert academic grader. Your task is to grade a student submission based on the provided assignment details and extracted text.
+
+        === ASSIGNMENT DETAILS ===
+        ${assignmentContext}
+        (Note: Grade strictly out of ${dynamicMaxPoints} points)
+
+        === STUDENT SUBMISSION (OCR EXTRACTED TEXT) ===
+        "${submission.ocrText}"
+
+        === GRADING INSTRUCTIONS ===
+        1. Compare the student's answers against the assignment questions/description.
+        2. Assign a specific numerical grade. The grade MUST be less than or equal to ${dynamicMaxPoints}.
+        3. Provide **short, simple, and concise feedback** using Markdown formatting (bullet points, bold text).
+        4. Highlight correct answers and point out errors briefly. Do NOT provide lengthy explanations.
+
+        output strictly in valid JSON format:
+        {
+            "grade": number,
+            "feedback": "string (markdown allowed, keep it short)",
+            "analysis": "string (markdown allowed, keep it short)"
+        }
+    `;
+
+    console.log('[DEBUG] AI Grading Prompt:', prompt);
+
+    const result = await generateJSON(prompt);
+    console.log('[DEBUG] AI Grading Result:', result);
+
+    if (!result || typeof result.grade !== 'number') {
+        throw new Error('AI Grading failed to generate valid result');
+    }
+
+    return result;
+};
+
+// @desc    Upload submission and run OCR
+// @route   POST /api/submissions/upload
+// @access  Private (Student)
 const uploadSubmission = async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ message: 'No file uploaded' });
@@ -30,6 +90,27 @@ const uploadSubmission = async (req, res) => {
             gradingMode: 'Manual', // Default
             status: 'submitted'
         });
+
+        // Trigger Auto-Grading (Background, or await if fast enough - let's await to populate generic)
+        try {
+            const assignment = await Assignment.findById(req.body.assignmentId);
+            if (assignment && text) {
+                console.log(`[AUTO-GRADE] Triggering AI grading for submission ${submission._id}`);
+                const aiResult = await evaluateSubmissionAI(submission, assignment);
+
+                submission.grade = aiResult.grade;
+                submission.feedback = aiResult.feedback;
+                submission.aiAnalysis = aiResult.analysis;
+                submission.gradingMode = 'AI';
+                // Note: Status remains 'submitted' so faculty sees it as new/pending approval
+                // Faculty will click "Approve" which sets status to 'graded'
+                await submission.save();
+                console.log(`[AUTO-GRADE] Submission ${submission._id} graded successfully`);
+            }
+        } catch (gradError) {
+            console.error("[AUTO-GRADE] Failed to auto-grade:", gradError);
+            // Non-blocking error, we still return success for upload
+        }
 
         res.json({
             message: 'File processed successfully',
@@ -58,66 +139,19 @@ const gradeSubmissionAI = async (req, res) => {
             return res.status(400).json({ message: 'No OCR text available for this submission' });
         }
 
-        const assignment = submission.assignmentId;
-
-        // Construct a detailed context for the AI
-        let assignmentContext = `Title: ${assignment.title}\nDescription: ${assignment.description}\nMax Points: ${assignment.maxPoints}\n`;
-
-        if (assignment.questions && assignment.questions.length > 0) {
-            assignmentContext += `\nSPECIFIC QUESTIONS:\n${JSON.stringify(assignment.questions, null, 2)}\n`;
-        }
-
-        // Calculate dynamic max points if questions exist
-        let dynamicMaxPoints = assignment.maxPoints;
-        if (assignment.questions && assignment.questions.length > 0) {
-            const questionsTotal = assignment.questions.reduce((sum, q) => sum + (Number(q.marks) || 0), 0);
-            if (questionsTotal > 0) {
-                dynamicMaxPoints = questionsTotal;
-            }
-        }
-
-        // Update context with true max points
-        assignmentContext = assignmentContext.replace(`Max Points: ${assignment.maxPoints}`, `Max Points: ${dynamicMaxPoints}`);
-
-        const prompt = `
-            You are an expert academic grader. Your task is to grade a student submission based on the provided assignment details and extracted text.
-
-            === ASSIGNMENT DETAILS ===
-            ${assignmentContext}
-            (Note: Grade strictly out of ${dynamicMaxPoints} points)
-
-            === STUDENT SUBMISSION (OCR EXTRACTED TEXT) ===
-            "${submission.ocrText}"
-
-            === GRADING INSTRUCTIONS ===
-            1. Compare the student's answers against the assignment questions/description.
-            2. Assign a specific numerical grade. The grade MUST be less than or equal to ${dynamicMaxPoints}.
-            3. Provide **short, simple, and concise feedback** using Markdown formatting (bullet points, bold text).
-            4. Highlight correct answers and point out errors briefly. Do NOT provide lengthy explanations.
-
-            output strictly in valid JSON format:
-            {
-                "grade": number,
-                "feedback": "string (markdown allowed, keep it short)",
-                "analysis": "string (markdown allowed, keep it short)"
-            }
-        `;
-
-        console.log('[DEBUG] AI Grading Prompt:', prompt);
-
-        const result = await generateJSON(prompt);
-        console.log('[DEBUG] AI Grading Result:', result);
-
-        if (!result || typeof result.grade !== 'number') {
-            return res.status(500).json({ message: 'AI Grading failed to generate valid result' });
-        }
+        const result = await evaluateSubmissionAI(submission, submission.assignmentId);
 
         // Update Submission
         submission.grade = result.grade;
         submission.feedback = result.feedback;
         submission.aiAnalysis = result.analysis;
         submission.gradingMode = 'AI';
-        submission.status = 'graded';
+
+        // If manually triggered by faculty, we might want to set to 'graded' or keep 'submitted'?
+        // The UI flow suggests "Generate Grade" -> Review -> "Approve". 
+        // So we keep it as is, waiting for approval, OR if they click "Generate" they see it.
+        // Current UI doesn't auto-approve. It just fills the fields.
+
         await submission.save();
 
         res.json(submission);
