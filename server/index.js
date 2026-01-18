@@ -13,8 +13,18 @@ app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
+// Request Logger
+app.use((req, res, next) => {
+  console.log(`[REQUEST] ${req.method} ${req.originalUrl}`);
+  next();
+});
+
 // Database Connection
 connectDB();
+
+// Scheduler
+const { scheduleNotifications } = require('./cron/notificationScheduler');
+scheduleNotifications();
 
 // Routes
 app.use('/api/auth', require('./routes/auth.routes'));

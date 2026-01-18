@@ -20,14 +20,18 @@ const generateContent = async (prompt) => {
 
 const generateJSON = async (prompt) => {
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
         const result = await model.generateContent(prompt + "\n\nOutput ONLY valid JSON. No markdown code blocks.");
         const response = await result.response;
         let text = response.text();
+        console.log('[DEBUG] Gemini JSON Raw:', text);
         text = text.replace(/```json/g, '').replace(/```/g, '').trim();
         return JSON.parse(text);
     } catch (error) {
         console.error("Gemini JSON Error:", error);
+        if (error.response) {
+            console.error("Gemini Error Details:", JSON.stringify(error.response, null, 2));
+        }
         return null;
     }
 }
@@ -210,10 +214,40 @@ const regenerateSingleQuestion = async (syllabusContent, syllabusPath, topic, ma
     }
 };
 
+// Helper to get text from file
+const generateTextWithFile = async (filePath, mimeType, prompt) => {
+    try {
+        console.log('Uploading file to Gemini for Text Extraction:', filePath);
+        const uploadResponse = await fileManager.uploadFile(filePath, {
+            mimeType: mimeType,
+            displayName: "OCR Upload",
+        });
+
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const result = await model.generateContent([
+            {
+                fileData: {
+                    mimeType: uploadResponse.file.mimeType,
+                    fileUri: uploadResponse.file.uri
+                }
+            },
+            { text: prompt }
+        ]);
+
+        const response = await result.response;
+        return response.text();
+
+    } catch (error) {
+        console.error("Gemini Text Extraction Error:", error);
+        throw new Error("Failed to extract text using Gemini");
+    }
+};
+
 module.exports = {
     generateContent,
     generateJSON,
     generateJSONWithFile,
+    generateTextWithFile,
     generateMultipleQuestions,
     regenerateSingleQuestion
 };

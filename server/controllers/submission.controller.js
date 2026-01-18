@@ -13,7 +13,8 @@ const uploadSubmission = async (req, res) => {
 
     try {
         // Run OCR
-        const text = await extractText(req.file.path);
+        // Pass the mimetype from multer
+        const text = await extractText(req.file.path, req.file.mimetype);
 
         // Save Submission to DB
         const submission = await Submission.create({
@@ -59,35 +60,55 @@ const gradeSubmissionAI = async (req, res) => {
 
         const assignment = submission.assignmentId;
 
-        const prompt = `
-            You are an expert academic grader. 
-            
-            ASSIGNMENT DETAILS:
-            Title: ${assignment.title}
-            Instructions: ${assignment.description}
-            Max Points: ${assignment.maxPoints}
-            Difficulty: ${assignment.difficulty}
+        // Construct a detailed context for the AI
+        let assignmentContext = `Title: ${assignment.title}\nDescription: ${assignment.description}\nMax Points: ${assignment.maxPoints}\n`;
 
-            STUDENT SUBMISSION (OCR EXTRACTED TEXT):
+        if (assignment.questions && assignment.questions.length > 0) {
+            assignmentContext += `\nSPECIFIC QUESTIONS:\n${JSON.stringify(assignment.questions, null, 2)}\n`;
+        }
+
+        // Calculate dynamic max points if questions exist
+        let dynamicMaxPoints = assignment.maxPoints;
+        if (assignment.questions && assignment.questions.length > 0) {
+            const questionsTotal = assignment.questions.reduce((sum, q) => sum + (Number(q.marks) || 0), 0);
+            if (questionsTotal > 0) {
+                dynamicMaxPoints = questionsTotal;
+            }
+        }
+
+        // Update context with true max points
+        assignmentContext = assignmentContext.replace(`Max Points: ${assignment.maxPoints}`, `Max Points: ${dynamicMaxPoints}`);
+
+        const prompt = `
+            You are an expert academic grader. Your task is to grade a student submission based on the provided assignment details and extracted text.
+
+            === ASSIGNMENT DETAILS ===
+            ${assignmentContext}
+            (Note: Grade strictly out of ${dynamicMaxPoints} points)
+
+            === STUDENT SUBMISSION (OCR EXTRACTED TEXT) ===
             "${submission.ocrText}"
 
-            TASK:
-            1. Analyze the student submission against the assignment instructions.
-            2. Assign a grade out of ${assignment.maxPoints}.
-            3. Provide detailed feedback.
-            4. Suggest areas for improvement.
+            === GRADING INSTRUCTIONS ===
+            1. Compare the student's answers against the assignment questions/description.
+            2. Assign a specific numerical grade. The grade MUST be less than or equal to ${dynamicMaxPoints}.
+            3. Provide **short, simple, and concise feedback** using Markdown formatting (bullet points, bold text).
+            4. Highlight correct answers and point out errors briefly. Do NOT provide lengthy explanations.
 
-            OUTPUT FORMAT (JSON ONLY):
+            output strictly in valid JSON format:
             {
                 "grade": number,
-                "feedback": "string",
-                "analysis": "string"
+                "feedback": "string (markdown allowed, keep it short)",
+                "analysis": "string (markdown allowed, keep it short)"
             }
         `;
 
-        const result = await generateJSON(prompt);
+        console.log('[DEBUG] AI Grading Prompt:', prompt);
 
-        if (!result) {
+        const result = await generateJSON(prompt);
+        console.log('[DEBUG] AI Grading Result:', result);
+
+        if (!result || typeof result.grade !== 'number') {
             return res.status(500).json({ message: 'AI Grading failed to generate valid result' });
         }
 
@@ -107,12 +128,87 @@ const gradeSubmissionAI = async (req, res) => {
     }
 };
 
+// @desc    Approve AI Grade
+// @route   PUT /api/submissions/:id/approve
+// @access  Private (Faculty Only)
+const approveSubmission = async (req, res) => {
+    try {
+        const submission = await Submission.findById(req.params.id);
+        if (!submission) return res.status(404).json({ message: 'Submission not found' });
+
+        submission.status = 'graded';
+        await submission.save();
+
+        res.json(submission);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// @desc    Manually Override Grade
+// @route   PUT /api/submissions/:id/override
+// @access  Private (Faculty Only)
+const overrideGrade = async (req, res) => {
+    try {
+        const { grade, feedback } = req.body;
+        const submission = await Submission.findById(req.params.id);
+        if (!submission) return res.status(404).json({ message: 'Submission not found' });
+
+        submission.grade = grade;
+        submission.feedback = feedback;
+        submission.gradingMode = 'Manual';
+        submission.status = 'graded';
+        await submission.save();
+
+        res.json(submission);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// @desc    Get all submissions for an assignment
+// @route   GET /api/submissions/list/:assignmentId
+// @access  Private (Faculty Only)
+const getSubmissionsByAssignment = async (req, res) => {
+    try {
+        console.log(`[DEBUG] API CALL: getSubmissionsByAssignment`);
+        console.log(`[DEBUG] Requested Assignment ID: "${req.params.assignmentId}"`);
+
+        if (!req.params.assignmentId || !req.params.assignmentId.match(/^[0-9a-fA-F]{24}$/)) {
+            console.error(`[DEBUG] Invalid assignmentId: ${req.params.assignmentId}`);
+            return res.status(400).json({ message: 'Invalid assignment ID' });
+        }
+
+        const submissions = await Submission.find({ assignmentId: req.params.assignmentId })
+            .populate('studentId', 'name email')
+            .sort({ submittedAt: -1 });
+
+        console.log(`[DEBUG] DB Query Result: Found ${submissions.length} submissions`);
+        if (submissions.length > 0) {
+            console.log(`[DEBUG] First submission ID: ${submissions[0]._id}`);
+        } else {
+            // Debug: check if any submissions exist for this assignment without population
+            const count = await Submission.countDocuments({ assignmentId: req.params.assignmentId });
+            console.log(`[DEBUG] Raw count without populate: ${count}`);
+        }
+
+        res.json(submissions);
+    } catch (error) {
+        console.error('[DEBUG] Error in getSubmissionsByAssignment:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
 // @desc Get details of a submission
 // @route GET /api/submissions/:id
 // @access Private
 const getSubmission = async (req, res) => {
     try {
-        const submission = await Submission.findById(req.params.id);
+        const submission = await Submission.findById(req.params.id)
+            .populate('studentId', 'name email')
+            .populate('assignmentId'); // populate full assignment for maxPoints etc.
         if (!submission) {
             return res.status(404).json({ message: 'Submission not found' });
         }
@@ -148,5 +244,8 @@ module.exports = {
     uploadSubmission,
     gradeSubmissionAI,
     getSubmission,
-    getMySubmission
+    getMySubmission,
+    approveSubmission,
+    overrideGrade,
+    getSubmissionsByAssignment
 };

@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FileText, BookOpen, Bell, User, LogOut, Search, Sun, School, FileSpreadsheet, Sparkles } from 'lucide-react';
+import { LayoutDashboard, FileText, BookOpen, Bell, User, LogOut, Search, Sun, School, FileSpreadsheet, Sparkles, ClipboardCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 
@@ -16,6 +16,7 @@ const FacultySidebar = () => {
         { path: '/faculty/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
         { path: '/faculty/courses', icon: BookOpen, label: 'Manage Courses' },
         { path: '/faculty/assignments', icon: FileText, label: 'Assignments' },
+        { path: '/faculty/submissions', icon: ClipboardCheck, label: 'Submissions' },
         { path: '/faculty/notifications', icon: Bell, label: 'Notifications' },
         { path: '/faculty/syllabus', icon: FileSpreadsheet, label: 'Syllabus' },
         { path: '/faculty/assignments/generate', icon: Sparkles, label: 'AI Generator' },

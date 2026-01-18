@@ -46,10 +46,19 @@ const createAssignment = async (req, res) => {
 // @access  Private
 const getAssignmentsByCourse = async (req, res) => {
     try {
+        console.log(`[DEBUG] Fetching assignments for course: ${req.params.courseId} by user ${req.user.id}`);
+
+        // Validate ObjectId
+        if (!req.params.courseId.match(/^[0-9a-fA-F]{24}$/)) {
+            console.error(`[DEBUG] Invalid courseId format: ${req.params.courseId}`);
+            return res.status(400).json({ message: 'Invalid course ID' });
+        }
+
         const assignments = await Assignment.find({ courseId: req.params.courseId }).sort({ createdAt: -1 });
+        console.log(`[DEBUG] Found ${assignments.length} assignments for course ${req.params.courseId}`);
         res.json(assignments);
     } catch (error) {
-        console.error(error);
+        console.error('[DEBUG] Error in getAssignmentsByCourse:', error);
         res.status(500).json({ message: 'Server error' });
     }
 };
