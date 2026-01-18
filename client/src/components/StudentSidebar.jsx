@@ -12,6 +12,8 @@ const StudentSidebar = () => {
     const [courses, setCourses] = useState([]);
     const [isCoursesExpanded, setIsCoursesExpanded] = useState(true);
 
+    const [unreadCount, setUnreadCount] = useState(0);
+
     useEffect(() => {
         const fetchCourses = async () => {
             try {
@@ -24,7 +26,26 @@ const StudentSidebar = () => {
                 console.error(err);
             }
         };
+
+        const fetchNotifications = async () => {
+            try {
+                const res = await authFetch('/api/notifications');
+                if (res.ok) {
+                    const data = await res.json();
+                    const unread = data.filter(n => !n.read).length;
+                    setUnreadCount(unread);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        };
+
         fetchCourses();
+        fetchNotifications();
+
+        // Optional: Poll every minute
+        const interval = setInterval(fetchNotifications, 60000);
+        return () => clearInterval(interval);
     }, [authFetch]);
 
     const isActive = (path) => {
@@ -35,7 +56,7 @@ const StudentSidebar = () => {
         { path: '/student/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
         { path: '/student/assignments', icon: FileText, label: 'Assignments' },
         { path: '/student/courses', icon: BookOpen, label: 'Courses', hasSubmenu: true },
-        { path: '/student/notifications', icon: Bell, label: 'Notifications' },
+        { path: '/student/notifications', icon: Bell, label: 'Notifications', badge: unreadCount },
         { path: '/student/results', icon: PieChart, label: 'Results' },
         { path: '/student/profile', icon: User, label: 'Profile' }
     ];
@@ -104,8 +125,8 @@ const StudentSidebar = () => {
                                                     key={course._id}
                                                     to={`/student/courses/${course._id}`}
                                                     className={`block px-4 py-2 rounded-lg text-sm transition-colors ${isActive(`/student/courses/${course._id}`)
-                                                            ? 'text-primary font-medium bg-primary/5 dark:bg-primary/10'
-                                                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5'
+                                                        ? 'text-primary font-medium bg-primary/5 dark:bg-primary/10'
+                                                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5'
                                                         }`}
                                                 >
                                                     <span className="truncate block">{course.title}</span>
@@ -135,8 +156,15 @@ const StudentSidebar = () => {
                                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/5'
                                 }`}
                         >
-                            <item.icon size={22} strokeWidth={1.5} className={active ? "text-white" : "text-gray-500 dark:text-gray-400"} />
-                            <span>{item.label}</span>
+                            <div className="relative flex items-center gap-4">
+                                <item.icon size={22} strokeWidth={1.5} className={active ? "text-white" : "text-gray-500 dark:text-gray-400"} />
+                                <span>{item.label}</span>
+                                {item.badge > 0 && (
+                                    <span className="absolute -right-2 -top-1 w-5 h-5 flex items-center justify-center bg-red-500 text-white text-xs font-bold rounded-full border-2 border-white dark:border-[#09090b]">
+                                        {item.badge}
+                                    </span>
+                                )}
+                            </div>
                         </Link>
                     );
                 })}

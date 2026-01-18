@@ -24,6 +24,21 @@ const FacultySubmissions = () => {
     const { authFetch } = useAuth(); // Removed token, used authFetch
     const navigate = useNavigate();
 
+    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedCourseFilter, setSelectedCourseFilter] = useState('All');
+    const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+
+    // Derived state for filters
+    const uniqueCourses = [...new Set(assignments.map(a => a.courseTitle))];
+
+    const filteredAssignments = assignments.filter(assignment => {
+        const query = searchQuery.toLowerCase();
+        const matchesSearch = assignment.title.toLowerCase().includes(query) ||
+            assignment.courseCode.toLowerCase().includes(query);
+        const matchesFilter = selectedCourseFilter === 'All' || assignment.courseTitle === selectedCourseFilter;
+        return matchesSearch && matchesFilter;
+    });
+
     useEffect(() => {
         // Test connectivity
         fetch('/api/submissions/test-connectivity')
@@ -33,6 +48,8 @@ const FacultySubmissions = () => {
 
         fetchAssignments();
     }, []);
+
+    // ... (fetchAssignments function remains unchanged)
 
     const fetchAssignments = async () => {
         try {
@@ -103,7 +120,7 @@ const FacultySubmissions = () => {
     }
 
     return (
-        <div className="max-w-7xl mx-auto px-4 pb-10">
+        <div className="max-w-7xl mx-auto px-4 pb-10" onClick={() => setShowFilterDropdown(false)}>
             <div className="flex justify-between items-center mb-8">
                 <div className="flex items-center gap-3">
                     <div className="p-3 bg-primary/10 rounded-lg text-primary">
@@ -114,25 +131,64 @@ const FacultySubmissions = () => {
                         <p className="text-gray-500 dark:text-gray-400 text-sm">Review student submissions across all courses</p>
                     </div>
                 </div>
-                {/* Search/Filter (Visual only for MVP) */}
-                <div className="flex gap-2">
-                    <button className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
-                        <Search size={20} />
-                    </button>
-                    <button className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
-                        <Filter size={20} />
-                    </button>
+                {/* Search/Filter */}
+                <div className="flex gap-2 items-center">
+                    <div className="relative">
+                        <input
+                            type="text"
+                            placeholder="Search assignments..."
+                            className="bg-gray-100 dark:bg-gray-800 border-none rounded-lg py-2 pl-3 pr-10 text-sm focus:ring-2 focus:ring-primary w-64 text-gray-900 dark:text-gray-100 placeholder-gray-500"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                        <Search className="absolute right-3 top-2.5 text-gray-400" size={16} />
+                    </div>
+
+                    <div className="relative">
+                        <button
+                            className={`p-2 rounded-lg transition-colors ${selectedCourseFilter !== 'All' ? 'bg-primary/10 text-primary' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setShowFilterDropdown(!showFilterDropdown);
+                            }}
+                        >
+                            <Filter size={20} />
+                        </button>
+
+                        {showFilterDropdown && (
+                            <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-100 dark:border-gray-700 z-10 py-1">
+                                <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-700 font-medium text-xs text-gray-500 uppercase tracking-wider">
+                                    Filter by Course
+                                </div>
+                                <button
+                                    className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 ${selectedCourseFilter === 'All' ? 'text-primary font-medium' : 'text-gray-700 dark:text-gray-300'}`}
+                                    onClick={() => setSelectedCourseFilter('All')}
+                                >
+                                    All Courses
+                                </button>
+                                {uniqueCourses.map(course => (
+                                    <button
+                                        key={course}
+                                        className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 ${selectedCourseFilter === course ? 'text-primary font-medium' : 'text-gray-700 dark:text-gray-300'}`}
+                                        onClick={() => setSelectedCourseFilter(course)}
+                                    >
+                                        {course}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 
             <div className="space-y-4">
-                {assignments.length === 0 ? (
+                {filteredAssignments.length === 0 ? (
                     <div className="text-center py-12 text-gray-400">
                         <FileText size={48} className="mx-auto mb-4 opacity-50" />
-                        <p>No assignments found. Create an assignment to see submissions here.</p>
+                        <p>No assignments found matching your filters.</p>
                     </div>
                 ) : (
-                    assignments.map((assignment) => (
+                    filteredAssignments.map((assignment) => (
                         <div key={assignment._id} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
 
                             {/* Assignment Header */}
@@ -157,9 +213,39 @@ const FacultySubmissions = () => {
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-4">
+                                    <div className="text-right hidden sm:block mr-4">
+                                        <div className="text-xs text-gray-400 dark:text-gray-500 mb-1">Valuation Mode</div>
+                                        <select
+                                            className="text-xs font-medium bg-gray-100 dark:bg-gray-700 border-none rounded px-2 py-1 cursor-pointer focus:ring-0 text-gray-700 dark:text-gray-300"
+                                            value={assignment.valuationMode || 'Liberal'}
+                                            onClick={(e) => e.stopPropagation()}
+                                            onChange={async (e) => {
+                                                e.stopPropagation();
+                                                const newMode = e.target.value;
+                                                try {
+                                                    // Update local state immediately for UI responsiveness
+                                                    setAssignments(prev => prev.map(a =>
+                                                        a._id === assignment._id ? { ...a, valuationMode: newMode } : a
+                                                    ));
+
+                                                    // API Call
+                                                    await authFetch(`/api/assignments/${assignment._id}`, {
+                                                        method: 'PUT',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        body: JSON.stringify({ valuationMode: newMode })
+                                                    });
+                                                } catch (err) {
+                                                    console.error('Failed to update valuation mode', err);
+                                                    // Revert on failure (could add toast notification here)
+                                                }
+                                            }}
+                                        >
+                                            <option value="Liberal">Liberal</option>
+                                            <option value="Strict">Strict</option>
+                                        </select>
+                                    </div>
                                     <div className="text-right hidden sm:block">
                                         <div className="text-xs text-gray-400 dark:text-gray-500">Status</div>
-                                        {/* We could show count of submissions here if we had it in assignment object */}
                                         <div className="font-medium text-gray-700 dark:text-gray-300">View Students</div>
                                     </div>
                                     {expandedAssignmentId === assignment._id ? <ChevronUp size={20} className="text-gray-400" /> : <ChevronDown size={20} className="text-gray-400" />}

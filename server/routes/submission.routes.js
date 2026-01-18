@@ -7,6 +7,7 @@ const {
     gradeSubmissionAI,
     getSubmission,
     getMySubmission,
+    getStudentSubmissions,
     approveSubmission,
     overrideGrade,
     getSubmissionsByAssignment
@@ -45,8 +46,10 @@ router.post('/upload', protect, upload.single('file'), uploadSubmission);
 router.post('/:id/grade-ai', protect, gradeSubmissionAI);
 router.put('/:id/approve', protect, approveSubmission);
 router.put('/:id/override', protect, overrideGrade);
-router.get('/:id', protect, getSubmission);
+// Specific routes MUST come before generic /:id route
+router.get('/my-results', protect, getStudentSubmissions);
 router.get('/assignment/:assignmentId', protect, getMySubmission);
 router.get('/list/:assignmentId', protect, getSubmissionsByAssignment);
+router.get('/:id', protect, getSubmission);
 
 module.exports = router;

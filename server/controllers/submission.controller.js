@@ -2,6 +2,7 @@ const Submission = require('../models/Submission');
 const Assignment = require('../models/Assignment');
 const { extractText } = require('../services/ocr.service');
 const { generateJSON } = require('../services/gemini.service');
+const { createNotificationInternal } = require('./notification.controller');
 
 // @desc    Upload submission and run OCR
 // @route   POST /api/submissions/upload
@@ -27,8 +28,27 @@ const evaluateSubmissionAI = async (submission, assignment) => {
     // Update context with true max points
     assignmentContext = assignmentContext.replace(`Max Points: ${assignment.maxPoints}`, `Max Points: ${dynamicMaxPoints}`);
 
+    // Set Grading Persona based on Valuation Mode
+    const valuationMode = assignment.valuationMode || 'Liberal';
+    let gradingPersona = "";
+    if (valuationMode === 'Strict') {
+        gradingPersona = `
+        Your valuation mode is **STRICT**. 
+        - Deduct marks for minor errors, spelling mistakes, and lack of clarity. 
+        - Be critical of the depth and precision of the answer. 
+        - Do not award full marks unless the answer is perfect.`;
+    } else {
+        gradingPersona = `
+        Your valuation mode is **LIBERAL**. 
+        - Be lenient and award marks for partial correctness. 
+        - Focus on the core understanding rather than minor details or grammar. 
+        - If the student gets the main idea right, be generous with points.`;
+    }
+
     const prompt = `
         You are an expert academic grader. Your task is to grade a student submission based on the provided assignment details and extracted text.
+        
+        ${gradingPersona}
 
         === ASSIGNMENT DETAILS ===
         ${assignmentContext}
@@ -39,7 +59,7 @@ const evaluateSubmissionAI = async (submission, assignment) => {
 
         === GRADING INSTRUCTIONS ===
         1. Compare the student's answers against the assignment questions/description.
-        2. Assign a specific numerical grade. The grade MUST be less than or equal to ${dynamicMaxPoints}.
+        2. Assign a specific numerical grade respecting the **${valuationMode}** mode. The grade MUST be less than or equal to ${dynamicMaxPoints}.
         3. Provide **short, simple, and concise feedback** using Markdown formatting (bullet points, bold text).
         4. Highlight correct answers and point out errors briefly. Do NOT provide lengthy explanations.
 
@@ -102,10 +122,20 @@ const uploadSubmission = async (req, res) => {
                 submission.feedback = aiResult.feedback;
                 submission.aiAnalysis = aiResult.analysis;
                 submission.gradingMode = 'AI';
-                // Note: Status remains 'submitted' so faculty sees it as new/pending approval
-                // Faculty will click "Approve" which sets status to 'graded'
+                // Auto-publish: Set status to 'graded' immediately so student sees it
+                submission.status = 'graded';
                 await submission.save();
                 console.log(`[AUTO-GRADE] Submission ${submission._id} graded successfully`);
+
+                // Notify Student
+                await createNotificationInternal(
+                    submission.studentId,
+                    'grade',
+                    'Assignment Graded (AI)',
+                    `Your submission for "${assignment.title}" has been graded by AI.`,
+                    { submissionId: submission._id, assignmentId: assignment._id },
+                    'green'
+                );
             }
         } catch (gradError) {
             console.error("[AUTO-GRADE] Failed to auto-grade:", gradError);
@@ -173,6 +203,19 @@ const approveSubmission = async (req, res) => {
         submission.status = 'graded';
         await submission.save();
 
+        // Notify Student
+        // Need to populate or fetch title first preferably, or just generic message
+        const fullSubmission = await Submission.findById(submission._id).populate('assignmentId');
+
+        await createNotificationInternal(
+            submission.studentId,
+            'grade',
+            'Grade Approved',
+            `Your grade for "${fullSubmission.assignmentId.title}" has been finalized.`,
+            { submissionId: submission._id, assignmentId: fullSubmission.assignmentId._id },
+            'green'
+        );
+
         res.json(submission);
     } catch (error) {
         console.error(error);
@@ -194,6 +237,17 @@ const overrideGrade = async (req, res) => {
         submission.gradingMode = 'Manual';
         submission.status = 'graded';
         await submission.save();
+
+        const fullSubmission = await Submission.findById(submission._id).populate('assignmentId');
+
+        await createNotificationInternal(
+            submission.studentId,
+            'grade',
+            'Grade Updated',
+            `Your grade for "${fullSubmission.assignmentId.title}" has been updated by your instructor.`,
+            { submissionId: submission._id, assignmentId: fullSubmission.assignmentId._id },
+            'blue'
+        );
 
         res.json(submission);
     } catch (error) {
@@ -272,6 +326,35 @@ const getMySubmission = async (req, res) => {
         console.error(error);
         res.status(500).json({ message: 'Server error' });
     }
+};
+
+// @desc Get all submissions for the logged-in student
+// @route GET /api/submissions/my-results
+// @access Private (Student)
+const getStudentSubmissions = async (req, res) => {
+    try {
+        console.log('[DEBUG] getStudentSubmissions called');
+        if (!req.user || !req.user.id) {
+            console.error('[DEBUG] req.user is missing!');
+            return res.status(401).json({ message: 'User not authenticated' });
+        }
+        console.log(`[DEBUG] Fetching submissions for student: ${req.user.id}`);
+
+        const submissions = await Submission.find({
+            studentId: req.user.id,
+            // Fetch all statuses so student sees pending work too
+        })
+            .populate({
+                path: 'assignmentId',
+                select: 'title courseTitle maxPoints questions'
+            })
+            .sort({ updatedAt: -1 });
+
+        res.json(submissions);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
 }
 
 module.exports = {
@@ -279,6 +362,7 @@ module.exports = {
     gradeSubmissionAI,
     getSubmission,
     getMySubmission,
+    getStudentSubmissions,
     approveSubmission,
     overrideGrade,
     getSubmissionsByAssignment

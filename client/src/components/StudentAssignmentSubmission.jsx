@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { FileText, Upload, CheckCircle, Wand2, Calendar, Tag, AlertCircle, FileType, ArrowLeft, Clock } from 'lucide-react';
+import { FileText, Upload, CheckCircle, Wand2, Calendar, Tag, AlertCircle, FileType, ArrowLeft, Clock, User } from 'lucide-react';
 import LoadingSpinner from './LoadingSpinner';
 
 const StudentAssignmentSubmission = () => {
@@ -339,9 +339,31 @@ const StudentAssignmentSubmission = () => {
                             <div className="animate-fade-in-up">
                                 {submission.grade && (
                                     <div className="text-center mb-6">
-                                        <p className="text-sm text-gray-500 mb-1">Estimated Score</p>
+                                        <div className="flex items-center justify-center gap-2 mb-1">
+                                            <p className="text-sm text-gray-500">Estimated Score</p>
+                                            {submission.gradingMode === 'AI' ? (
+                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+                                                    <Wand2 size={10} /> AI Graded
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                                                    <User size={10} /> Faculty Verified
+                                                </span>
+                                            )}
+                                        </div>
                                         <div className="text-5xl font-extrabold text-transparent bg-clip-text bg-linear-to-br from-primary to-purple-600">
-                                            {submission.grade}<span className="text-2xl text-gray-400 font-normal">/{assignment.maxPoints}</span>
+                                            {submission.grade}
+                                            <span className="text-2xl text-gray-400 font-normal">
+                                                /{(() => {
+                                                    const questions = assignment.questions;
+                                                    const defaultMax = assignment.maxPoints || 100;
+                                                    if (questions && questions.length > 0) {
+                                                        const sum = questions.reduce((acc, q) => acc + (Number(q.marks) || 0), 0);
+                                                        return sum > 0 ? sum : defaultMax;
+                                                    }
+                                                    return defaultMax;
+                                                })()}
+                                            </span>
                                         </div>
                                     </div>
                                 )}

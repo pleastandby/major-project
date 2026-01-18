@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { FileText, Upload, CheckCircle, Wand2, Calendar, Tag, AlertCircle, FileType, ArrowLeft } from 'lucide-react';
+import { FileText, Upload, CheckCircle, Wand2, Calendar, Tag, AlertCircle, FileType, ArrowLeft, Clock, Loader2, User } from 'lucide-react';
 import LoadingSpinner from '../components/LoadingSpinner';
+import ReactMarkdown from 'react-markdown';
 
 const AssignmentDetails = () => {
     const { id } = useParams();
@@ -329,65 +330,77 @@ const AssignmentDetails = () => {
                     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sticky top-6">
                         <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
                             <Wand2 size={20} className="text-purple-500" />
-                            AI Grading
+                            AI Grading Result
                         </h3>
 
                         {!submission ? (
                             <div className="text-center py-10 px-4 bg-gray-50 rounded-xl border border-dashed border-gray-200">
                                 <p className="text-gray-500 text-sm mb-2">No submission yet</p>
-                                <p className="text-gray-400 text-xs">Submit your assignment to unlock AI grading.</p>
+                                <p className="text-gray-400 text-xs">Submit your assignment to receive your grade.</p>
                             </div>
                         ) : submission.status === 'graded' ? (
                             <div className="animate-fade-in-up">
                                 <div className="text-center mb-6">
-                                    <p className="text-sm text-gray-500 mb-1">Total Score</p>
+                                    <div className="flex items-center justify-center gap-2 mb-1">
+                                        <p className="text-sm text-gray-500">Total Score</p>
+                                        {submission.gradingMode === 'AI' ? (
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-700">
+                                                <Wand2 size={10} /> AI Graded
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700">
+                                                <User size={10} /> Faculty Verified
+                                            </span>
+                                        )}
+                                    </div>
                                     <div className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br from-link to-purple-600">
-                                        {submission.grade}<span className="text-2xl text-gray-400 font-normal">/{assignment.maxPoints}</span>
+                                        {submission.grade}
+                                        <span className="text-2xl text-gray-400 font-normal">
+                                            /{(() => {
+                                                const questions = assignment.questions;
+                                                const defaultMax = assignment.maxPoints || 100;
+                                                if (questions && questions.length > 0) {
+                                                    const sum = questions.reduce((acc, q) => acc + (Number(q.marks) || 0), 0);
+                                                    return sum > 0 ? sum : defaultMax;
+                                                }
+                                                return defaultMax;
+                                            })()}
+                                        </span>
                                     </div>
                                 </div>
 
                                 <div className="space-y-4">
                                     <div className="p-4 bg-purple-50 rounded-xl border border-purple-100">
                                         <h4 className="font-semibold text-purple-900 text-sm mb-2">Feedback</h4>
-                                        <p className="text-purple-800 text-sm leading-relaxed">{submission.feedback}</p>
+                                        <div className="prose prose-sm prose-purple text-purple-800 text-sm leading-relaxed">
+                                            <ReactMarkdown>{submission.feedback}</ReactMarkdown>
+                                        </div>
                                     </div>
                                     <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
                                         <h4 className="font-semibold text-blue-900 text-sm mb-2">Analysis</h4>
-                                        <p className="text-blue-800 text-sm leading-relaxed">{submission.aiAnalysis}</p>
+                                        <div className="prose prose-sm prose-blue text-blue-800 text-sm leading-relaxed">
+                                            <ReactMarkdown>{submission.aiAnalysis}</ReactMarkdown>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         ) : (
                             <div>
-                                <div className="bg-purple-50 p-4 rounded-xl border border-purple-100 mb-6">
-                                    <h4 className="font-semibold text-purple-900 text-sm mb-1">Ready to Grade</h4>
-                                    <p className="text-purple-800/80 text-xs">
-                                        Your submission has been processed by OCR and is ready for AI analysis.
+                                <div className="bg-yellow-50 p-5 rounded-xl border border-yellow-100 mb-4 text-center">
+                                    <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-3 text-yellow-600">
+                                        <Clock size={20} />
+                                    </div>
+                                    <h4 className="font-bold text-yellow-800 text-sm mb-1">Submission Under Review</h4>
+                                    <p className="text-yellow-700/80 text-xs leading-relaxed">
+                                        Your assignment has been received and auto-graded. It is currently pending final approval from your instructor.
                                     </p>
                                 </div>
-                                <button
-                                    onClick={handleAIGrade}
-                                    disabled={grading}
-                                    className="w-full btn bg-gradient-to-r from-purple-600 to-link text-white hover:opacity-90 shadow-lg shadow-purple-500/20 border-none relative overflow-hidden group"
-                                >
-                                    <span className="relative z-10 flex items-center justify-center gap-2">
-                                        {grading ? (
-                                            <>
-                                                <LoadingSpinner size="sm" className="border-white/30 border-t-white" />
-                                                Analyzing...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Wand2 size={18} />
-                                                Grade with Gemini AI
-                                                <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded text-white/90">Preview</span>
-                                            </>
-                                        )}
+                                <div className="text-center">
+                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-gray-100 text-gray-500 rounded-full text-xs font-medium">
+                                        <Loader2 size={12} className="animate-spin" />
+                                        Processing Results
                                     </span>
-                                </button>
-                                <p className="text-center text-xs text-gray-400 mt-3">
-                                    *Demo Mode: Manually trigger grading
-                                </p>
+                                </div>
                             </div>
                         )}
                     </div>

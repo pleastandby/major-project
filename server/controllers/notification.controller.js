@@ -1,21 +1,30 @@
 const Notification = require('../models/Notification');
 const User = require('../models/User');
 
+// Internal helper to create notification
+const createNotificationInternal = async (userId, type, title, body, related = {}, alertLevel = 'green') => {
+    try {
+        const notification = await Notification.create({
+            userId,
+            type,
+            title,
+            body,
+            related,
+            alertLevel,
+            read: false
+        });
+        return notification;
+    } catch (error) {
+        console.error('Error creating internal notification:', error);
+    }
+};
+
 // @desc    Create a notification (Admin/System)
 // @route   POST /api/notifications
 // @access  Private
 const createNotification = async (req, res) => {
     try {
         const { title, body, type, alertLevel, recipientType, specificEmail } = req.body;
-
-        const notificationData = {
-            type,
-            title,
-            body,
-            alertLevel,
-            read: false,
-            createdAt: new Date(),
-        };
 
         let recipients = [];
 
@@ -35,16 +44,12 @@ const createNotification = async (req, res) => {
             return res.status(400).json({ message: 'Invalid recipient type' });
         }
 
-        const notificationsToInsert = recipients.map(user => ({
-            ...notificationData,
-            userId: user._id
-        }));
+        // Use the internal helper for each recipient
+        const notifications = await Promise.all(recipients.map(user =>
+            createNotificationInternal(user._id, type, title, body, {}, alertLevel)
+        ));
 
-        if (notificationsToInsert.length > 0) {
-            await Notification.insertMany(notificationsToInsert);
-        }
-
-        res.status(201).json({ message: `Notification sent to ${notificationsToInsert.length} users` });
+        res.status(201).json({ message: `Notification sent to ${notifications.length} users` });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server error' });
@@ -92,5 +97,6 @@ const markRead = async (req, res) => {
 module.exports = {
     createNotification,
     getMyNotifications,
-    markRead
+    markRead,
+    createNotificationInternal
 };

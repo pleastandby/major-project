@@ -34,6 +34,7 @@ import StudentAssignments from './components/StudentAssignments';
 import StudentAssignmentSubmission from './components/StudentAssignmentSubmission';
 import StudentCourses from './components/StudentCourses';
 import StudentCourseDetails from './pages/StudentCourseDetails';
+import StudentResults from './pages/StudentResults';
 
 // Placeholders for now
 const NotFound = () => <h1>404 Not Found</h1>;
@@ -106,7 +107,7 @@ function App() {
                 <Route path="/student/courses" element={<StudentCourses />} />
                 <Route path="/student/courses/:id" element={<StudentCourseDetails />} />
                 <Route path="/student/notifications" element={<NotificationList />} />
-                <Route path="/student/results" element={<div className="p-4"><h1>Results</h1><p>Coming Soon</p></div>} />
+                <Route path="/student/results" element={<StudentResults />} />
                 <Route path="/student/profile" element={<UserProfile />} />
               </Route>
 

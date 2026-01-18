@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Bell, Plus, CheckCircle, Clock } from 'lucide-react';
+import { Bell, Plus, CheckCircle, Clock, ChevronRight } from 'lucide-react';
 // Helper to format date relative
 const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -92,6 +92,24 @@ const NotificationList = () => {
                                     </div>
                                     <h3 className="font-semibold text-lg">{notif.title}</h3>
                                     <p className="mt-1 text-sm opacity-90 leading-relaxed">{notif.body}</p>
+
+                                    {/* Action Link based on type */}
+                                    {notif.related && notif.related.submissionId && (
+                                        <Link
+                                            to="/student/results"
+                                            className="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-primary hover:text-primary-dark hover:underline"
+                                        >
+                                            View Results <ChevronRight size={12} />
+                                        </Link>
+                                    )}
+                                    {notif.related && notif.related.assignmentId && !notif.related.submissionId && (
+                                        <Link
+                                            to={`/student/assignments/${notif.related.assignmentId}`}
+                                            className="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-primary hover:text-primary-dark hover:underline"
+                                        >
+                                            View Assignment <ChevronRight size={12} />
+                                        </Link>
+                                    )}
                                 </div>
                                 {!notif.read && (
                                     <button

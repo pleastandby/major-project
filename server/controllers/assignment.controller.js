@@ -1,10 +1,10 @@
 const Assignment = require('../models/Assignment');
 const Course = require('../models/Course');
+const Enrollment = require('../models/Enrollment');
 
 // @desc    Create a new assignment
 // @route   POST /api/assignments
 // @access  Private (Faculty)
-const Enrollment = require('../models/Enrollment');
 
 // @desc    Create a new assignment
 // @route   POST /api/assignments
@@ -23,13 +23,22 @@ const createAssignment = async (req, res) => {
             return res.status(403).json({ message: 'Not authorized to add assignments to this course' });
         }
 
+        // Calculate maxPoints from questions if available
+        let calculatedMaxPoints = maxPoints;
+        const questions = req.body.questions || [];
+        if (questions.length > 0) {
+            const sum = questions.reduce((acc, q) => acc + (Number(q.marks) || 0), 0);
+            if (sum > 0) calculatedMaxPoints = sum;
+        }
+
         const assignment = await Assignment.create({
             courseId,
             createdBy: req.user.id,
             title,
             description,
             dueDate,
-            maxPoints,
+            questions, // Ensure questions are saved
+            maxPoints: calculatedMaxPoints,
             type: type || 'Manual',
             difficulty: difficulty || 'Medium'
         });
@@ -110,9 +119,52 @@ const getStudentAssignments = async (req, res) => {
     }
 };
 
+
+
+// @desc    Update assignment details (e.g. valuation mode)
+// @route   PUT /api/assignments/:id
+// @access  Private (Faculty)
+const updateAssignment = async (req, res) => {
+    try {
+        const { valuationMode } = req.body;
+        // Add other fields here if needed e.g. title, description updates
+
+        const assignment = await Assignment.findById(req.params.id);
+        if (!assignment) {
+            return res.status(404).json({ message: 'Assignment not found' });
+        }
+
+        // Verify ownership
+        if (assignment.createdBy.toString() !== req.user.id) {
+            return res.status(403).json({ message: 'Not authorized' });
+        }
+
+        if (valuationMode) {
+            assignment.valuationMode = valuationMode;
+        }
+
+        // Update other fields if provided
+        if (req.body.questions) {
+            const sum = req.body.questions.reduce((acc, q) => acc + (Number(q.marks) || 0), 0);
+            if (sum > 0) assignment.maxPoints = sum;
+            assignment.questions = req.body.questions;
+        }
+        if (req.body.title) assignment.title = req.body.title;
+        if (req.body.description) assignment.description = req.body.description;
+        if (req.body.maxPoints && !req.body.questions) assignment.maxPoints = req.body.maxPoints; // Only manual override if no questions updated
+
+        await assignment.save();
+        res.json(assignment);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
 module.exports = {
     createAssignment,
     getAssignmentsByCourse,
     getAssignment,
-    getStudentAssignments
+    getStudentAssignments,
+    updateAssignment
 };
