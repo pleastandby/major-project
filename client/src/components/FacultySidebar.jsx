@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, FileText, BookOpen, Bell, User, LogOut, Search, Sun, School, FileSpreadsheet, Sparkles, ClipboardCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useState } from 'react';
 
 const FacultySidebar = () => {
     const location = useLocation();
@@ -23,6 +24,12 @@ const FacultySidebar = () => {
         { path: '/faculty/profile', icon: User, label: 'Profile' }
     ];
 
+    const [searchTerm, setSearchTerm] = useState('');
+
+    const filteredNavItems = navItems.filter(item =>
+        item.label.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
     return (
         <aside className="w-64 min-h-screen bg-white dark:bg-[#09090b] sticky top-0 left-0 flex flex-col border-r border-gray-100 dark:border-white/5 transition-colors duration-300">
             {/* Header */}
@@ -42,7 +49,9 @@ const FacultySidebar = () => {
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
                     <input
                         type="text"
-                        placeholder="Search..."
+                        placeholder="Search menu..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full bg-gray-50 dark:bg-white/5 text-gray-700 dark:text-gray-200 text-sm pl-10 pr-4 py-3 rounded-xl border-none focus:ring-1 focus:ring-gray-200 dark:focus:ring-white/10 outline-none transition-colors"
                     />
                 </div>
@@ -50,7 +59,7 @@ const FacultySidebar = () => {
 
             {/* Navigation */}
             <nav className="flex-1 px-4 space-y-1">
-                {navItems.map((item) => {
+                {filteredNavItems.map((item) => {
                     const active = isActive(item.path);
                     return (
                         <Link

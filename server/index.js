@@ -35,6 +35,7 @@ app.use('/api/assignments', require('./routes/assignment.routes'));
 app.use('/api/faculty', require('./routes/faculty.routes'));
 app.use('/api/notifications', require('./routes/notification.routes'));
 app.use('/api/user', require('./routes/user.routes'));
+app.use('/api/dashboard', require('./routes/dashboard.routes')); // Smart Overview Routes
 
 app.get('/', (req, res) => {
   res.send('Elevare LMS API is running');

@@ -10,7 +10,7 @@ const FacultyDashboard = () => {
     const { user, authFetch } = useAuth();
     const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(true);
-
+    const [overviewData, setOverviewData] = useState(null);
 
     const [students, setStudents] = useState([]);
     const [notifications, setNotifications] = useState([]);
@@ -19,10 +19,11 @@ const FacultyDashboard = () => {
         const fetchData = async () => {
             try {
                 // Parallel fetch for speed
-                const [coursesRes, notifsRes, studentsRes] = await Promise.all([
+                const [coursesRes, notifsRes, studentsRes, overviewRes] = await Promise.all([
                     authFetch('/api/courses/my'),
                     authFetch('/api/notifications'),
-                    authFetch('/api/courses/students/all')
+                    authFetch('/api/courses/students/all'),
+                    authFetch('/api/dashboard/faculty/overview')
                 ]);
 
                 if (coursesRes.ok) {
@@ -38,6 +39,11 @@ const FacultyDashboard = () => {
                 if (studentsRes.ok) {
                     const data = await studentsRes.json();
                     setStudents(Array.isArray(data) ? data : []);
+                }
+
+                if (overviewRes.ok) {
+                    const data = await overviewRes.json();
+                    setOverviewData(data);
                 }
 
             } catch (err) {
@@ -56,14 +62,122 @@ const FacultyDashboard = () => {
             <div className="bg-[#3C3D37] rounded-xl p-8 md:p-12 mb-8 text-white shadow-sm flex flex-col md:flex-row justify-between items-center relative overflow-hidden">
                 <div className="z-10 relative text-center md:text-left">
                     <h1 className="text-4xl font-bold mb-2">Welcome back {user?.name?.split(' ')[0]}!</h1>
-                    <p className="text-gray-300 text-lg">Manage your courses and assignments!</p>
+                    <p className="text-gray-300 text-lg">Manage your courses and track student performance!</p>
                 </div>
-
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                 {/* Left Column (Courses & Overview) - Takes 3 cols */}
                 <div className="lg:col-span-3 space-y-8">
+
+                    {/* Smart Overview Section */}
+                    {overviewData && (
+                        <div className="animate-fade-in-up">
+                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                                <span className="bg-gradient-to-r from-primary to-link text-transparent bg-clip-text">Course Command Center</span>
+                            </h2>
+
+                            {/* Stats Row */}
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                                <Link to="/faculty/students" className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <p className="text-sm text-gray-500">Total Students</p>
+                                            <p className="text-2xl font-bold text-gray-900 dark:text-white">{overviewData.metrics.totalStudents}</p>
+                                        </div>
+                                    </div>
+                                </Link>
+                                <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
+                                    <p className="text-sm text-gray-500">Scheduled</p>
+                                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{overviewData.metrics.scheduledAssignments}</p>
+                                </div>
+                                <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
+                                    <p className="text-sm text-gray-500">Class Avg</p>
+                                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{overviewData.metrics.averageClassPerformance}%</p>
+                                </div>
+                                <div className={`p-4 rounded-2xl border shadow-sm ${overviewData.metrics.pendingGrading > 0
+                                    ? 'bg-orange-50 border-orange-100 dark:bg-orange-900/10 dark:border-orange-900/30'
+                                    : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700'
+                                    }`}>
+                                    <p className={`text-sm ${overviewData.metrics.pendingGrading > 0 ? 'text-orange-600' : 'text-gray-500'}`}>Pending Grading</p>
+                                    <p className={`text-2xl font-bold ${overviewData.metrics.pendingGrading > 0 ? 'text-orange-700' : 'text-gray-900 dark:text-white'}`}>
+                                        {overviewData.metrics.pendingGrading}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Alerts Panel */}
+                                <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 shadow-sm">
+                                    <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                                        <AlertTriangle size={18} className="text-error" />
+                                        Smart Alerts
+                                    </h3>
+                                    <div className="space-y-3">
+                                        {overviewData.alerts.length > 0 ? (
+                                            overviewData.alerts.map((alert, idx) => (
+                                                <div key={idx} className={`p-3 rounded-xl border ${alert.priority === 'critical' ? 'bg-error/10 border-error/20' : 'bg-yellow-50 border-yellow-100'
+                                                    }`}>
+                                                    <div className="flex justify-between">
+                                                        <p className={`text-xs font-bold uppercase tracking-wider opacity-80 mb-1 ${alert.priority === 'critical' ? 'text-error' : 'text-yellow-800'
+                                                            }`}>{alert.title}</p>
+                                                    </div>
+                                                    <p className={`text-sm ${alert.priority === 'critical' ? 'text-error' : 'text-yellow-800'
+                                                        }`}>{alert.message}</p>
+                                                    {alert.data && (
+                                                        <div className="mt-2 flex flex-wrap gap-2">
+                                                            {alert.data.map((student, i) => (
+                                                                <div key={i} className={`text-xs px-2 py-1 rounded border flex items-center gap-2 ${student.status === 'Critical'
+                                                                    ? 'bg-white border-error/20 text-error'
+                                                                    : 'bg-white border-yellow-200 text-yellow-800'
+                                                                    }`}>
+                                                                    <span className="font-semibold">{student.name}</span>
+                                                                    <span className="opacity-80">({student.average}%)</span>
+                                                                    {student.gradedCount && <span className="text-[10px] opacity-60">| {student.gradedCount} graded</span>}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="text-center py-8 text-gray-400 text-sm">
+                                                No active alerts. Your classes are running smoothly!
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Weekly Activity / Productivity */}
+                                <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 shadow-sm">
+                                    <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Weekly Snapshot</h3>
+                                    <div className="flex items-center gap-4 mb-6">
+                                        <div className="w-12 h-12 rounded-full bg-secondary text-primary border border-tertiary flex items-center justify-center font-bold text-xl">
+                                            {overviewData.metrics.assignmentsThisWeek}
+                                        </div>
+                                        <div>
+                                            <p className="font-medium text-gray-900 dark:text-white">Assignments Created</p>
+                                            <p className="text-xs text-gray-500">This week</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="border-t border-gray-100 dark:border-gray-700 pt-4">
+                                        <div className="flex justify-between items-center text-sm mb-2">
+                                            <span className="text-gray-500">Scheduled Assignments</span>
+                                            <span className="font-medium text-gray-900 dark:text-white">{overviewData.metrics.scheduledAssignments}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-gray-500">At-Risk Students</span>
+                                            <span className={`font-medium ${overviewData.atRiskCount > 0 ? 'text-error' : 'text-gray-900 dark:text-white'}`}>
+                                                {overviewData.atRiskCount || 0}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Courses Section */}
                     <div>
                         <div className="flex justify-between items-center mb-4">
@@ -97,35 +211,6 @@ const FacultyDashboard = () => {
                                 )}
                             </div>
                         )}
-                    </div>
-
-                    {/* Overview Section */}
-                    <div>
-                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Overview</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Link to="/faculty/students" className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all group">
-                                <div className="flex items-center justify-between mb-4">
-                                    <h3 className="text-gray-500 dark:text-gray-400 font-medium">Total Students</h3>
-                                    <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded-lg text-blue-600 dark:text-blue-400 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/30 transition-colors">
-                                        <div className="w-6 h-6 flex items-center justify-center">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="flex items-end gap-2">
-                                    <span className="text-3xl font-bold text-gray-900 dark:text-white">{students.length}</span>
-                                    <span className="text-sm text-gray-500 dark:text-gray-400 mb-1">active</span>
-                                </div>
-                            </Link>
-
-                            {/* Placeholder for other stats */}
-                            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 shadow-sm opacity-60">
-                                <h3 className="text-gray-500 dark:text-gray-400 font-medium mb-4">Course Engagement</h3>
-                                <div className="flex items-center justify-center h-16 text-gray-400 text-sm">
-                                    Coming Soon
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
 

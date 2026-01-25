@@ -61,6 +61,16 @@ const StudentSidebar = () => {
         { path: '/student/profile', icon: User, label: 'Profile' }
     ];
 
+    const [searchTerm, setSearchTerm] = useState('');
+
+    const filteredNavItems = navItems.filter(item =>
+        item.label.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const filteredCourses = courses.filter(course =>
+        course.title.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
     return (
         <aside className="w-64 min-h-screen bg-white dark:bg-[#09090b] sticky top-0 left-0 flex flex-col border-r border-gray-100 dark:border-white/5 transition-colors duration-300">
             {/* Header */}
@@ -80,7 +90,9 @@ const StudentSidebar = () => {
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
                     <input
                         type="text"
-                        placeholder="Search..."
+                        placeholder="Search menu..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full bg-gray-50 dark:bg-white/5 text-gray-700 dark:text-gray-200 text-sm pl-10 pr-4 py-3 rounded-xl border-none focus:ring-1 focus:ring-gray-200 dark:focus:ring-white/10 outline-none transition-colors"
                     />
                 </div>
@@ -88,10 +100,16 @@ const StudentSidebar = () => {
 
             {/* Navigation */}
             <nav className="flex-1 px-4 space-y-1 overflow-y-auto custom-scrollbar">
-                {navItems.map((item) => {
+                {filteredNavItems.map((item) => {
                     const active = isActive(item.path);
 
                     if (item.label === 'Courses') {
+                        // Only show courses section if "courses" matches search OR if any course inside matches search
+                        const matchCourses = filteredCourses.length > 0;
+                        const matchLabel = 'courses'.includes(searchTerm.toLowerCase());
+
+                        if (searchTerm && !matchLabel && !matchCourses) return null;
+
                         return (
                             <div key={item.path}>
                                 <div className="flex items-center justify-between group">
@@ -117,10 +135,10 @@ const StudentSidebar = () => {
                                 </div>
 
                                 {/* Submenu for Courses */}
-                                {isCoursesExpanded && (
+                                {(isCoursesExpanded || searchTerm) && (
                                     <div className="ml-4 pl-4 border-l border-gray-100 dark:border-white/5 space-y-1 mt-1 mb-2">
-                                        {courses.length > 0 ? (
-                                            courses.map(course => (
+                                        {filteredCourses.length > 0 ? (
+                                            filteredCourses.map(course => (
                                                 <Link
                                                     key={course._id}
                                                     to={`/student/courses/${course._id}`}
@@ -133,7 +151,8 @@ const StudentSidebar = () => {
                                                 </Link>
                                             ))
                                         ) : (
-                                            <span className="block px-4 py-2 text-xs text-gray-400 italic">No courses enrolled</span>
+                                            courses.length > 0 && searchTerm ? <span className="block px-4 py-2 text-xs text-gray-400 italic">No matching courses</span> :
+                                                <span className="block px-4 py-2 text-xs text-gray-400 italic">No courses enrolled</span>
                                         )}
                                         <Link
                                             to="/courses/join"

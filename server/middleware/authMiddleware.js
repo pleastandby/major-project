@@ -30,4 +30,12 @@ const protect = async (req, res, next) => {
     }
 };
 
-module.exports = { protect };
+const faculty = (req, res, next) => {
+    if (req.user && req.user.roles && req.user.roles.includes('faculty')) {
+        next();
+    } else {
+        res.status(403).json({ message: 'Not authorized as faculty' });
+    }
+};
+
+module.exports = { protect, faculty };

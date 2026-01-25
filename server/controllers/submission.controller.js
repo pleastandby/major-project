@@ -210,8 +210,8 @@ const approveSubmission = async (req, res) => {
         await createNotificationInternal(
             submission.studentId,
             'grade',
-            'Grade Approved',
-            `Your grade for "${fullSubmission.assignmentId.title}" has been finalized.`,
+            'Assignment Verified (Faculty)',
+            `Your assignment "${fullSubmission.assignmentId.title}" has been verified by the faculty.`,
             { submissionId: submission._id, assignmentId: fullSubmission.assignmentId._id },
             'green'
         );
@@ -243,8 +243,8 @@ const overrideGrade = async (req, res) => {
         await createNotificationInternal(
             submission.studentId,
             'grade',
-            'Grade Updated',
-            `Your grade for "${fullSubmission.assignmentId.title}" has been updated by your instructor.`,
+            'Assignment Verified (Updated)',
+            `Your grade for "${fullSubmission.assignmentId.title}" has been updated and verified by your instructor.`,
             { submissionId: submission._id, assignmentId: fullSubmission.assignmentId._id },
             'blue'
         );

@@ -15,6 +15,8 @@ import {
     Loader2
 } from 'lucide-react';
 
+import { useLocation } from 'react-router-dom';
+
 const FacultySubmissions = () => {
     const [assignments, setAssignments] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -23,6 +25,7 @@ const FacultySubmissions = () => {
     const [loadingSubmissions, setLoadingSubmissions] = useState({});
     const { authFetch } = useAuth(); // Removed token, used authFetch
     const navigate = useNavigate();
+    const location = useLocation();
 
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCourseFilter, setSelectedCourseFilter] = useState('All');
@@ -48,6 +51,50 @@ const FacultySubmissions = () => {
 
         fetchAssignments();
     }, []);
+
+    // Effect to handle auto-expansion from navigation state
+    useEffect(() => {
+        if (location.state?.expandedAssignmentId && assignments.length > 0) {
+            const targetId = location.state.expandedAssignmentId;
+            // Only expand if we haven't already (or if it's different)
+            if (expandedAssignmentId !== targetId) {
+                // We need to call toggleExpand, but toggleExpand acts as a toggle.
+                // We want to force open.
+                // So we can just call it, assuming it starts closed.
+                // Or better, directly call the logic.
+
+                // Let's reuse toggleExpand logic but ensure we don't close it if open
+                setExpandedAssignmentId(targetId);
+                console.log("Auto-expanding assignment from state:", targetId);
+
+                if (!submissionsCache[targetId]) {
+                    setLoadingSubmissions(prev => ({ ...prev, [targetId]: true }));
+                    try {
+                        // We need to define this fetch logic inside or make it accessible
+                        // Since toggleExpand is below, we can't call it easily if it's not defined yet or if dependencies issues.
+                        // Ideally, we move the fetch logic to a helper or just duplicate the fetch here for simplicity/safety
+
+                        authFetch(`/api/submissions/list/${targetId}`)
+                            .then(res => res.json())
+                            .then(data => {
+                                setSubmissionsCache(prev => ({ ...prev, [targetId]: data }));
+                            })
+                            .catch(error => console.error("Error fetching submissions:", error))
+                            .finally(() => {
+                                setLoadingSubmissions(prev => ({ ...prev, [targetId]: false }));
+                            });
+
+                    } catch (error) {
+                        console.error("Error fetching submissions:", error);
+                    }
+                }
+
+                // Clear the state so it doesn't reopen on refresh if we navigated away? 
+                // Actually react-router state persists on refresh usually, but good to consume it.
+                // We can replace history to clear state, but let's keep it simple first.
+            }
+        }
+    }, [assignments, location.state]);
 
     // ... (fetchAssignments function remains unchanged)
 

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Calendar, FileText, Sparkles, Edit2, Save, X, RefreshCw, Loader2 } from 'lucide-react';
 
 const AssignmentView = () => {
     const { authFetch } = useAuth();
     const { id } = useParams();
+    const navigate = useNavigate();
     const [assignment, setAssignment] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
@@ -184,13 +185,26 @@ const AssignmentView = () => {
                                 </span>
                             )}
                             {!isEditing ? (
-                                <button
-                                    onClick={handleEdit}
-                                    className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
-                                >
-                                    <Edit2 size={16} />
-                                    Edit
-                                </button>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => navigate('/faculty/submissions', { state: { expandedAssignmentId: assignment._id } })}
+                                        className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
+                                    >
+                                        <div className="flex -space-x-1 mr-1">
+                                            {[1, 2, 3].map(i => (
+                                                <div key={i} className="w-4 h-4 rounded-full bg-gray-500 border border-white"></div>
+                                            ))}
+                                        </div>
+                                        View Submissions
+                                    </button>
+                                    <button
+                                        onClick={handleEdit}
+                                        className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
+                                    >
+                                        <Edit2 size={16} />
+                                        Edit
+                                    </button>
+                                </div>
                             ) : (
                                 <div className="flex gap-2">
                                     <button

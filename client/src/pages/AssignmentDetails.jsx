@@ -169,9 +169,23 @@ const AssignmentDetails = () => {
                                     {assignment.difficulty}
                                 </span>
                             </div>
-                            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">{assignment.title}</h1>
-
-                            <div className="flex flex-wrap items-center gap-6 text-sm text-gray-600">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-0">{assignment.title}</h1>
+                                {isFaculty && (
+                                    <button
+                                        onClick={() => navigate('/faculty/submissions', { state: { expandedAssignmentId: assignment._id } })}
+                                        className="flex items-center gap-2 bg-black text-white px-5 py-2.5 rounded-xl hover:bg-gray-800 transition-colors shadow-sm font-medium text-sm self-start sm:self-auto"
+                                    >
+                                        <div className="flex -space-x-2 mr-1">
+                                            {[1, 2, 3].map(i => (
+                                                <div key={i} className="w-6 h-6 rounded-full bg-gray-500 border-2 border-white dark:border-gray-800"></div>
+                                            ))}
+                                        </div>
+                                        View Submissions
+                                    </button>
+                                )}
+                            </div>
+                            <div className="flex flex-wrap items-center gap-6 text-sm text-gray-600 mt-4">
                                 <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">
                                     <Calendar size={16} className="text-gray-400" />
                                     <span>Due: <span className="font-medium text-gray-900">{new Date(assignment.dueDate).toLocaleDateString()}</span></span>
