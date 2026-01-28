@@ -23,6 +23,11 @@ const SyllabusSchema = new mongoose.Schema({
     },
     content: {
         type: String,
+    },
+    course: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Course',
+        required: false,
     }
 }, {
     timestamps: true,

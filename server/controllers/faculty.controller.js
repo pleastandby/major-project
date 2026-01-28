@@ -14,6 +14,11 @@ const uploadSyllabus = async (req, res) => {
             return res.status(400).json({ message: 'Please upload a file' });
         }
 
+        const { courseId } = req.body;
+        if (!courseId) {
+            return res.status(400).json({ message: 'Course ID is required' });
+        }
+
         // Extract Text from PDF
         let extractedText = '';
         try {
@@ -34,7 +39,8 @@ const uploadSyllabus = async (req, res) => {
             path: req.file.path,
             uploadedBy: req.user.id,
             size: req.file.size,
-            content: extractedText
+            content: extractedText,
+            course: courseId
         });
 
         // Return file info
@@ -129,7 +135,9 @@ const generateAssignmentFromSyllabus = async (req, res) => {
 // @access  Private
 const getSyllabusList = async (req, res) => {
     try {
-        const syllabusList = await Syllabus.find({ uploadedBy: req.user.id }).sort({ createdAt: -1 });
+        const syllabusList = await Syllabus.find({ uploadedBy: req.user.id })
+            .populate('course', 'title')
+            .sort({ createdAt: -1 });
         res.json(syllabusList);
     } catch (error) {
         console.error(error);
