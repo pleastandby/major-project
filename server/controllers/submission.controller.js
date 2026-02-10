@@ -229,8 +229,21 @@ const approveSubmission = async (req, res) => {
 const overrideGrade = async (req, res) => {
     try {
         const { grade, feedback } = req.body;
-        const submission = await Submission.findById(req.params.id);
+        const submission = await Submission.findById(req.params.id).populate('assignmentId');
         if (!submission) return res.status(404).json({ message: 'Submission not found' });
+
+        // Calculate Max Points
+        const assignment = submission.assignmentId;
+        let maxPoints = assignment.maxPoints || 100;
+
+        if (assignment.questions && assignment.questions.length > 0) {
+            const questionsTotal = assignment.questions.reduce((sum, q) => sum + (Number(q.marks) || 0), 0);
+            if (questionsTotal > 0) maxPoints = questionsTotal;
+        }
+
+        if (Number(grade) > maxPoints) {
+            return res.status(400).json({ message: `Grade cannot exceed maximum marks of ${maxPoints}` });
+        }
 
         submission.grade = grade;
         submission.feedback = feedback;

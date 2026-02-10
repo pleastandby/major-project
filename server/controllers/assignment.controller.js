@@ -1,6 +1,7 @@
 const Assignment = require('../models/Assignment');
 const Course = require('../models/Course');
 const Enrollment = require('../models/Enrollment');
+const Submission = require('../models/Submission');
 
 // @desc    Create a new assignment
 // @route   POST /api/assignments
@@ -110,9 +111,34 @@ const getStudentAssignments = async (req, res) => {
             courseId: { $in: courseIds }
         })
             .populate('courseId', 'title courseCode')
-            .sort({ dueDate: 1 }); // Sort by due date (soonest first)
+            .sort({ dueDate: 1 })
+            .lean(); // Use lean() to allow adding properties
 
-        res.json(assignments);
+        // Find submissions for this student for these assignments
+        const assignmentIds = assignments.map(a => a._id);
+        const submissions = await Submission.find({
+            studentId: req.user.id,
+            assignmentId: { $in: assignmentIds }
+        });
+
+        // Map submissions for easy lookup
+        const submissionMap = {};
+        submissions.forEach(sub => {
+            submissionMap[sub.assignmentId.toString()] = sub;
+        });
+
+        // Attach submission status to assignments
+        const assignmentsWithStatus = assignments.map(assignment => {
+            const submission = submissionMap[assignment._id.toString()];
+            return {
+                ...assignment,
+                isSubmitted: !!submission,
+                submittedAt: submission ? submission.createdAt : null,
+                submissionGrade: submission ? submission.grade : null
+            };
+        });
+
+        res.json(assignmentsWithStatus);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server error' });

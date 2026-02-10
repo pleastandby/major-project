@@ -9,10 +9,6 @@ const FacultySidebar = () => {
     const { logout } = useAuth();
     const { isDarkMode, toggleTheme } = useTheme();
 
-    const isActive = (path) => {
-        return location.pathname === path || location.pathname.startsWith(`${path}/`);
-    };
-
     const navItems = [
         { path: '/faculty/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
         { path: '/faculty/courses', icon: BookOpen, label: 'Manage Courses' },
@@ -23,6 +19,20 @@ const FacultySidebar = () => {
         { path: '/faculty/assignments/generate', icon: Sparkles, label: 'AI Generator' },
         { path: '/faculty/profile', icon: User, label: 'Profile' }
     ];
+
+    const isActive = (path) => {
+        if (location.pathname === path) return true;
+        if (location.pathname.startsWith(`${path}/`)) {
+            // Check if there's a more specific nav item that matches
+            const betterMatch = navItems.some(item =>
+                item.path !== path &&
+                item.path.length > path.length &&
+                (location.pathname === item.path || location.pathname.startsWith(`${item.path}/`))
+            );
+            return !betterMatch;
+        }
+        return false;
+    };
 
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -65,9 +75,9 @@ const FacultySidebar = () => {
                         <Link
                             key={item.path}
                             to={item.path}
-                            className={`flex items-center gap-4 px-4 py-3.5 rounded-xl text-sm font-medium transition-all duration-200 ${active
-                                ? 'bg-primary text-white shadow-xl shadow-primary/10'
-                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/5'
+                            className={`flex items-center gap-4 px-6 py-3.5 rounded-full text-sm font-medium transition-all duration-300 mx-2 ${active
+                                ? 'bg-primary text-white shadow-md shadow-primary/20 scale-[1.02]'
+                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-white/5'
                                 }`}
                         >
                             <item.icon size={22} strokeWidth={1.5} className={active ? "text-white" : "text-gray-500 dark:text-gray-400"} />

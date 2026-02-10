@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { FileText, Upload, CheckCircle, Wand2, Calendar, Tag, AlertCircle, FileType, ArrowLeft, Clock, User } from 'lucide-react';
 import LoadingSpinner from './LoadingSpinner';
+import ReactMarkdown from 'react-markdown';
 
 const StudentAssignmentSubmission = () => {
     const { id } = useParams();
@@ -141,14 +142,14 @@ const StudentAssignmentSubmission = () => {
         <div className="max-w-5xl mx-auto px-4 pb-12">
             <button
                 onClick={() => navigate('/student/assignments')}
-                className="group flex items-center text-sm font-medium text-gray-500 hover:text-primary mb-6 transition-colors"
+                className="group flex items-center text-sm font-medium text-gray-500 hover:text-primary mb-6 transition-colors px-3 py-1 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full w-fit"
             >
                 <ArrowLeft size={16} className="mr-1 group-hover:-translate-x-1 transition-transform" />
                 Back to Assignments
             </button>
 
             {/* Assignment Header Card */}
-            <div className="bg-white dark:bg-[#09090b] rounded-2xl shadow-lg shadow-gray-100/50 dark:shadow-none border border-gray-100 dark:border-white/5 overflow-hidden mb-8 relative">
+            <div className="card overflow-hidden mb-8 relative !p-0">
                 <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-primary to-purple-500"></div>
                 <div className="p-8">
                     <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
@@ -227,7 +228,7 @@ const StudentAssignmentSubmission = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Left Column: Submission Status/Upload */}
                 <div className="lg:col-span-2 space-y-8">
-                    <div className="bg-white dark:bg-[#09090b] rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 p-8">
+                    <div className="card">
                         <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center gap-2">
                             Your Submission
                         </h2>
@@ -253,9 +254,9 @@ const StudentAssignmentSubmission = () => {
                                                 <span className="text-xs font-normal text-gray-400 bg-gray-100 dark:bg-white/5 px-2 py-0.5 rounded-full">Automated</span>
                                             </h3>
                                         </div>
-                                        <div className="bg-gray-50 dark:bg-white/5 p-5 rounded-xl border border-gray-200 dark:border-white/10 text-sm font-mono text-gray-700 dark:text-gray-300 relative group">
-                                            <div className="max-h-64 overflow-y-auto pr-2 custom-scrollbar whitespace-pre-wrap">
-                                                {extractedText}
+                                        <div className="bg-gray-50 dark:bg-white/5 p-5 rounded-xl border border-gray-200 dark:border-white/10 text-sm text-gray-700 dark:text-gray-300 relative group">
+                                            <div className="max-h-64 overflow-y-auto pr-2 custom-scrollbar prose prose-sm dark:prose-invert max-w-none">
+                                                <ReactMarkdown>{extractedText}</ReactMarkdown>
                                             </div>
                                         </div>
                                     </div>
@@ -292,7 +293,7 @@ const StudentAssignmentSubmission = () => {
                                 <div className="flex flex-col items-center gap-4">
                                     <label
                                         htmlFor="file-upload"
-                                        className="btn bg-white dark:bg-white/5 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/10 hover:border-gray-300 shadow-sm text-sm px-6 py-2.5 h-auto cursor-pointer"
+                                        className="btn btn-outline text-sm px-6 py-2.5 h-auto cursor-pointer"
                                     >
                                         {file ? (
                                             <span className="flex items-center gap-2 text-primary font-semibold">
@@ -324,7 +325,7 @@ const StudentAssignmentSubmission = () => {
 
                 {/* Right Column: Grading status */}
                 <div className="lg:col-span-1">
-                    <div className="bg-white dark:bg-[#09090b] rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 p-6 sticky top-6">
+                    <div className="card sticky top-6">
                         <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
                             <Wand2 size={20} className="text-purple-500" />
                             AI Prediction
@@ -372,13 +373,17 @@ const StudentAssignmentSubmission = () => {
                                     {submission.feedback && (
                                         <div className="p-4 bg-purple-50 dark:bg-purple-900/10 rounded-xl border border-purple-100 dark:border-purple-800">
                                             <h4 className="font-semibold text-purple-900 dark:text-purple-300 text-sm mb-2">Feedback</h4>
-                                            <p className="text-purple-800 dark:text-purple-200 text-sm leading-relaxed">{submission.feedback}</p>
+                                            <div className="prose prose-sm dark:prose-invert max-w-none text-purple-800 dark:text-purple-200">
+                                                <ReactMarkdown>{submission.feedback}</ReactMarkdown>
+                                            </div>
                                         </div>
                                     )}
                                     {submission.aiAnalysis && (
                                         <div className="p-4 bg-blue-50 dark:bg-blue-900/10 rounded-xl border border-blue-100 dark:border-blue-800">
                                             <h4 className="font-semibold text-blue-900 dark:text-blue-300 text-sm mb-2">Analysis</h4>
-                                            <p className="text-blue-800 dark:text-blue-200 text-sm leading-relaxed">{submission.aiAnalysis}</p>
+                                            <div className="prose prose-sm dark:prose-invert max-w-none text-blue-800 dark:text-blue-200">
+                                                <ReactMarkdown>{submission.aiAnalysis}</ReactMarkdown>
+                                            </div>
                                         </div>
                                     )}
                                 </div>

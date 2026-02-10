@@ -158,7 +158,7 @@ const AssignmentView = () => {
                 Back to Assignments
             </Link>
 
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-8">
+            <div className="card">
                 {/* Header */}
                 <div className="border-b border-gray-100 dark:border-gray-700 pb-6 mb-6">
                     <div className="flex items-start justify-between mb-4">
@@ -169,7 +169,7 @@ const AssignmentView = () => {
                                     name="title"
                                     value={editedMetadata.title}
                                     onChange={handleMetadataChange}
-                                    className="text-3xl font-bold text-gray-900 dark:text-white bg-transparent border-b border-gray-300 dark:border-gray-600 focus:border-primary outline-none w-full"
+                                    className="text-3xl font-bold text-gray-900 dark:text-white bg-transparent border-b-2 border-primary/20 focus:border-primary outline-none w-full transition-colors pb-1"
                                 />
                             ) : (
                                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
@@ -179,16 +179,16 @@ const AssignmentView = () => {
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                             {assignment.type === 'AI_Generated' && (
-                                <span className="flex items-center gap-1 px-3 py-1 bg-purple-50 text-purple-700 text-sm font-medium rounded-full">
+                                <span className="flex items-center gap-1 px-3 py-1 bg-purple-50 text-purple-700 text-sm font-bold uppercase tracking-wider rounded-full">
                                     <Sparkles size={14} />
-                                    AI Generated
+                                    AI
                                 </span>
                             )}
                             {!isEditing ? (
                                 <div className="flex gap-2">
                                     <button
                                         onClick={() => navigate('/faculty/submissions', { state: { expandedAssignmentId: assignment._id } })}
-                                        className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
+                                        className="btn bg-black text-white hover:bg-gray-800 rounded-full"
                                     >
                                         <div className="flex -space-x-1 mr-1">
                                             {[1, 2, 3].map(i => (
@@ -199,7 +199,7 @@ const AssignmentView = () => {
                                     </button>
                                     <button
                                         onClick={handleEdit}
-                                        className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
+                                        className="btn btn-primary rounded-full"
                                     >
                                         <Edit2 size={16} />
                                         Edit
@@ -209,7 +209,7 @@ const AssignmentView = () => {
                                 <div className="flex gap-2">
                                     <button
                                         onClick={handleCancel}
-                                        className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                                        className="btn btn-outline rounded-full"
                                     >
                                         <X size={16} />
                                         Cancel
@@ -217,7 +217,7 @@ const AssignmentView = () => {
                                     <button
                                         onClick={handleSave}
                                         disabled={saving}
-                                        className="flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors disabled:opacity-50"
+                                        className="btn bg-gray-900 text-white hover:bg-black rounded-full"
                                     >
                                         {saving ? (
                                             <>

@@ -292,10 +292,29 @@ const SubmissionGrading = () => {
                                                         type="number"
                                                         value={grade}
                                                         max={finalMax}
-                                                        onChange={(e) => setGrade(e.target.value)}
-                                                        className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary outline-none transition-all font-bold text-lg"
+                                                        onChange={(e) => {
+                                                            const val = Number(e.target.value);
+                                                            if (val <= finalMax) {
+                                                                setGrade(e.target.value);
+                                                            } else {
+                                                                // Optional: Visual shake or toast, for now just strict prevention or cap
+                                                                // Better UX: Allow typing but show error state? 
+                                                                // Request says "prevent entering grade > max marks"
+                                                                // Let's cap it to max if they copy paste, or just don't update if typing
+                                                                // Actually, standard HTML max attribute + strict check:
+                                                                if (val > finalMax) return;
+                                                                setGrade(e.target.value);
+                                                            }
+                                                        }}
+                                                        className={`w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border rounded-lg focus:ring-2 outline-none transition-all font-bold text-lg ${Number(grade) > finalMax
+                                                                ? 'border-red-500 focus:ring-red-200 text-red-600'
+                                                                : 'border-gray-200 dark:border-gray-700 focus:ring-primary'
+                                                            }`}
                                                         placeholder="0"
                                                     />
+                                                    {Number(grade) > finalMax && (
+                                                        <p className="text-red-500 text-xs mt-1">Grade cannot exceed {finalMax}</p>
+                                                    )}
                                                 </>
                                             );
                                         })()}

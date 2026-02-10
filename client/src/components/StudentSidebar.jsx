@@ -115,9 +115,9 @@ const StudentSidebar = () => {
                                 <div className="flex items-center justify-between group">
                                     <Link
                                         to={item.path}
-                                        className={`flex-1 flex items-center gap-4 px-4 py-3.5 rounded-xl text-sm font-medium transition-all duration-200 ${active && !isCoursesExpanded
-                                            ? 'bg-primary text-white shadow-xl shadow-primary/10'
-                                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/5'
+                                        className={`flex-1 flex items-center gap-4 px-6 py-3.5 rounded-full text-sm font-medium transition-all duration-300 ${active && !isCoursesExpanded
+                                            ? 'bg-primary text-white shadow-md shadow-primary/20 scale-[1.02]'
+                                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-white/5'
                                             }`}
                                     >
                                         <item.icon size={22} strokeWidth={1.5} className={active && !isCoursesExpanded ? "text-white" : "text-gray-500 dark:text-gray-400"} />
@@ -128,7 +128,7 @@ const StudentSidebar = () => {
                                             e.preventDefault();
                                             setIsCoursesExpanded(!isCoursesExpanded);
                                         }}
-                                        className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                                        className="p-2 mr-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
                                     >
                                         {isCoursesExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                                     </button>
@@ -170,16 +170,16 @@ const StudentSidebar = () => {
                         <Link
                             key={item.path}
                             to={item.path}
-                            className={`flex items-center gap-4 px-4 py-3.5 rounded-xl text-sm font-medium transition-all duration-200 ${active
-                                ? 'bg-primary text-white shadow-xl shadow-primary/10'
-                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/5'
+                            className={`flex items-center gap-4 px-6 py-3.5 rounded-full text-sm font-medium transition-all duration-300 mx-2 ${active
+                                ? 'bg-primary text-white shadow-md shadow-primary/20 scale-[1.02]'
+                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-white/5'
                                 }`}
                         >
-                            <div className="relative flex items-center gap-4">
+                            <div className="relative flex items-center gap-4 w-full">
                                 <item.icon size={22} strokeWidth={1.5} className={active ? "text-white" : "text-gray-500 dark:text-gray-400"} />
                                 <span>{item.label}</span>
                                 {item.badge > 0 && (
-                                    <span className="absolute -right-2 -top-1 w-5 h-5 flex items-center justify-center bg-red-500 text-white text-xs font-bold rounded-full border-2 border-white dark:border-[#09090b]">
+                                    <span className="absolute right-0 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center bg-red-500 text-white text-xs font-bold rounded-full border-2 border-white dark:border-[#09090b]">
                                         {item.badge}
                                     </span>
                                 )}

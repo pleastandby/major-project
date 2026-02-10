@@ -51,7 +51,7 @@ const StudentDashboard = () => {
     return (
         <div className="max-w-7xl mx-auto">
             {/* Header Banner */}
-            <div className="bg-[#3C3D37] rounded-xl p-8 md:p-12 mb-8 text-white shadow-sm flex flex-col md:flex-row justify-between items-center relative overflow-hidden">
+            <div className="bg-[#3C3D37] rounded-[24px] p-8 md:p-12 mb-8 text-white shadow-md flex flex-col md:flex-row justify-between items-center relative overflow-hidden">
                 <div className="z-10 relative text-center md:text-left">
                     <h1 className="text-4xl font-bold mb-2">Welcome back {user?.name?.split(' ')[0]}!</h1>
                     <p className="text-gray-300 text-lg">Check your smart overview for personalized insights!</p>
@@ -72,21 +72,21 @@ const StudentDashboard = () => {
 
                             {/* Stats Row */}
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                                <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-                                    <p className="text-sm text-gray-500">Avg Grade</p>
-                                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{overviewData.metrics.avgGrade}%</p>
+                                <div className="card p-4 flex flex-col items-center justify-center text-center">
+                                    <p className="text-sm font-medium text-gray-500">Avg Grade</p>
+                                    <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{overviewData.metrics.avgGrade}%</p>
                                 </div>
-                                <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-                                    <p className="text-sm text-gray-500">Completion</p>
-                                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{overviewData.metrics.completionRate}%</p>
+                                <div className="card p-4 flex flex-col items-center justify-center text-center">
+                                    <p className="text-sm font-medium text-gray-500">Completion</p>
+                                    <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{overviewData.metrics.completionRate}%</p>
                                 </div>
-                                <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-                                    <p className="text-sm text-gray-500">This Week</p>
-                                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{overviewData.metrics.submissionsThisWeek} <span className="text-xs font-normal text-gray-400">subs</span></p>
+                                <div className="card p-4 flex flex-col items-center justify-center text-center">
+                                    <p className="text-sm font-medium text-gray-500">This Week</p>
+                                    <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{overviewData.metrics.submissionsThisWeek} <span className="text-xs font-normal text-gray-400">subs</span></p>
                                 </div>
-                                <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-                                    <p className="text-sm text-gray-500">Upcoming</p>
-                                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{overviewData.upcomingDeadlines.length}</p>
+                                <div className="card p-4 flex flex-col items-center justify-center text-center">
+                                    <p className="text-sm font-medium text-gray-500">Upcoming</p>
+                                    <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{overviewData.upcomingDeadlines.length}</p>
                                 </div>
                             </div>
 
@@ -101,8 +101,8 @@ const StudentDashboard = () => {
                                         {overviewData.suggestions.length > 0 ? (
                                             overviewData.suggestions.map((sugg, idx) => (
                                                 <div key={idx} className={`p-3 rounded-xl border ${sugg.priority === 'critical' ? 'bg-error/10 border-error/20 text-error' :
-                                                        sugg.priority === 'high' ? 'bg-orange-50 border-orange-100 text-orange-800' :
-                                                            'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200'
+                                                    sugg.priority === 'high' ? 'bg-orange-50 border-orange-100 text-orange-800' :
+                                                        'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200'
                                                     }`}>
                                                     <p className="text-xs font-bold uppercase tracking-wider opacity-70 mb-1">{sugg.title}</p>
                                                     <p className="text-sm">{sugg.message}</p>
@@ -119,17 +119,17 @@ const StudentDashboard = () => {
                                 {/* Best Work / Upcoming */}
                                 <div className="space-y-6">
                                     {/* Upcoming List */}
-                                    <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700">
-                                        <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Next Due</h3>
+                                    <div className="card">
+                                        <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Next Due</h3>
                                         <div className="space-y-3">
                                             {overviewData.upcomingDeadlines.length > 0 ? (
                                                 overviewData.upcomingDeadlines.map((task) => (
-                                                    <div key={task._id} className="flex justify-between items-center p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg border border-transparent hover:border-gray-100 dark:hover:border-gray-700 transition-colors">
+                                                    <div key={task._id} className="flex justify-between items-center p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-xl border border-transparent hover:border-gray-100 dark:hover:border-gray-700 transition-colors">
                                                         <div>
                                                             <p className="font-medium text-sm text-gray-800 dark:text-gray-200">{task.title}</p>
                                                             <p className="text-xs text-gray-500">{new Date(task.dueDate).toLocaleDateString()}</p>
                                                         </div>
-                                                        <Link to={`/assignments/${task._id}`} className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-3 py-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600">
+                                                        <Link to={`/assignments/${task._id}`} className="btn btn-secondary text-xs px-3 py-1.5 rounded-full">
                                                             View
                                                         </Link>
                                                     </div>
@@ -158,7 +158,7 @@ const StudentDashboard = () => {
                                 <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
                             </div>
                         ) : (
-                            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 min-h-[200px]">
+                            <div className="card min-h-[200px]">
                                 {courses.length > 0 ? (
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         {courses.map(course => (
@@ -184,7 +184,7 @@ const StudentDashboard = () => {
                         <h2 className="text-xl font-bold text-gray-900 dark:text-white">Notifications</h2>
                         <Link to="/student/notifications" className="text-sm text-primary hover:underline">View All</Link>
                     </div>
-                    <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-700 min-h-[500px] overflow-y-auto custom-scrollbar">
+                    <div className="card min-h-[500px] overflow-y-auto custom-scrollbar p-4">
                         {loading ? (
                             <div className="flex justify-center py-10">
                                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -192,11 +192,11 @@ const StudentDashboard = () => {
                         ) : notifications.length > 0 ? (
                             <div className="space-y-3">
                                 {notifications.slice(0, 5).map(notif => (
-                                    <div key={notif._id} className={`flex gap-3 items-start p-3 rounded-xl transition-all cursor-pointer border ${notif.alertLevel === 'red'
+                                    <div key={notif._id} className={`flex gap-3 items-start p-3 rounded-2xl transition-all cursor-pointer border ${notif.alertLevel === 'red'
                                         ? 'bg-red-50 border-red-100 hover:bg-red-100 dark:bg-red-900/10 dark:border-red-900/30'
                                         : notif.alertLevel === 'yellow'
                                             ? 'bg-yellow-50 border-yellow-100 hover:bg-yellow-100 dark:bg-yellow-900/10 dark:border-yellow-900/30'
-                                            : 'bg-white border-gray-100 hover:bg-gray-100 dark:bg-gray-700/50 dark:border-gray-600 dark:hover:bg-gray-700'
+                                            : 'bg-white border-gray-100 hover:bg-gray-50 dark:bg-gray-700/50 dark:border-gray-600 dark:hover:bg-gray-700'
                                         }`}>
                                         <div className={`p-2 rounded-full shrink-0 ${notif.alertLevel === 'red' ? 'bg-red-100 text-red-600 dark:bg-red-900/50 dark:text-red-400' :
                                             notif.alertLevel === 'yellow' ? 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/50 dark:text-yellow-400' :

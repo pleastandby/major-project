@@ -51,72 +51,76 @@ const DefaultLayout = () => (
 
 import { ThemeProvider } from './context/ThemeContext';
 
+import { GeneratorProvider } from './context/GeneratorContext';
+
 function App() {
   return (
     <Router>
       <AuthProvider>
         <ThemeProvider>
-          <div className="min-h-screen bg-secondary font-sans text-primary dark:bg-gray-900 dark:text-gray-100">
-            <Routes>
-              <Route path="/" element={<Navigate to="/login" replace />} />
+          <GeneratorProvider>
+            <div className="min-h-screen bg-secondary font-sans text-primary dark:bg-gray-900 dark:text-gray-100">
+              <Routes>
+                <Route path="/" element={<Navigate to="/login" replace />} />
 
-              {/* Public/Default Layout Routes */}
-              <Route element={<DefaultLayout />}>
-                {/* Unified Login */}
-                <Route path="/login" element={<Login />} />
-                <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route path="/verify-otp" element={<VerifyOTP />} />
-                <Route path="/reset-password" element={<ResetPassword />} />
+                {/* Public/Default Layout Routes */}
+                <Route element={<DefaultLayout />}>
+                  {/* Unified Login */}
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/verify-otp" element={<VerifyOTP />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
 
-                {/* Register Pages */}
-                <Route path="/student/register" element={<StudentRegister />} />
-                <Route path="/faculty/register" element={<FacultyRegister />} />
+                  {/* Register Pages */}
+                  <Route path="/student/register" element={<StudentRegister />} />
+                  <Route path="/faculty/register" element={<FacultyRegister />} />
 
-                {/* Shared/Course Routes - For now keeping in Default Layout */}
-                <Route path="/courses/create" element={<CreateCourse />} />
-                <Route path="/courses/join" element={<JoinCourse />} />
-                <Route path="/courses/:id" element={<CourseDetails />} />
-                <Route path="/courses/:id/settings" element={<CourseSettings />} />
-                <Route path="/courses/:id/assignments/create" element={<CreateAssignment />} />
-                <Route path="/assignments/:id" element={<AssignmentDetails />} />
+                  {/* Shared/Course Routes - For now keeping in Default Layout */}
+                  <Route path="/courses/create" element={<CreateCourse />} />
+                  <Route path="/courses/join" element={<JoinCourse />} />
+                  <Route path="/courses/:id" element={<CourseDetails />} />
+                  <Route path="/courses/:id/settings" element={<CourseSettings />} />
+                  <Route path="/courses/:id/assignments/create" element={<CreateAssignment />} />
+                  <Route path="/assignments/:id" element={<AssignmentDetails />} />
 
-                <Route path="*" element={<NotFound />} />
-              </Route>
+                  <Route path="*" element={<NotFound />} />
+                </Route>
 
-              {/* Faculty Layout Routes (Sidebar) */}
-              <Route element={<FacultyLayout />}>
-                <Route path="/faculty/dashboard" element={<FacultyDashboard />} />
-                <Route path="/faculty/courses" element={<FacultyCourses />} />
-                <Route path="/faculty/assignments" element={<AssignmentList />} />
-                <Route path="/faculty/assignments/:id" element={<AssignmentView />} />
-                <Route path="/faculty/notifications" element={<NotificationList />} />
-                <Route path="/faculty/notifications/create" element={<CreateNotification />} />
-                <Route path="/faculty/syllabus" element={<FacultySyllabus />} />
-                <Route path="/faculty/students" element={<StudentList />} />
-                <Route path="/faculty/profile" element={<UserProfile />} />
-                <Route path="/faculty/assignments/generate" element={<AssignmentGenerator />} />
-                <Route path="/faculty/submissions" element={<FacultySubmissions />} />
-                <Route path="/faculty/submissions/:id/grading" element={<SubmissionGrading />} />
-              </Route>
+                {/* Faculty Layout Routes (Sidebar) */}
+                <Route element={<FacultyLayout />}>
+                  <Route path="/faculty/dashboard" element={<FacultyDashboard />} />
+                  <Route path="/faculty/courses" element={<FacultyCourses />} />
+                  <Route path="/faculty/assignments" element={<AssignmentList />} />
+                  <Route path="/faculty/assignments/:id" element={<AssignmentView />} />
+                  <Route path="/faculty/notifications" element={<NotificationList />} />
+                  <Route path="/faculty/notifications/create" element={<CreateNotification />} />
+                  <Route path="/faculty/syllabus" element={<FacultySyllabus />} />
+                  <Route path="/faculty/students" element={<StudentList />} />
+                  <Route path="/faculty/profile" element={<UserProfile />} />
+                  <Route path="/faculty/assignments/generate" element={<AssignmentGenerator />} />
+                  <Route path="/faculty/submissions" element={<FacultySubmissions />} />
+                  <Route path="/faculty/submissions/:id/grading" element={<SubmissionGrading />} />
+                </Route>
 
-              {/* Student Layout Routes (Sidebar) */}
-              <Route element={<StudentLayout />}>
-                <Route path="/student/dashboard" element={<StudentDashboard />} />
-                <Route path="/student/assignments" element={<StudentAssignments />} />
-                <Route path="/student/assignments/:id" element={<StudentAssignmentSubmission />} />
-                <Route path="/student/courses" element={<StudentCourses />} />
-                <Route path="/student/courses/:id" element={<StudentCourseDetails />} />
-                <Route path="/student/notifications" element={<NotificationList />} />
-                <Route path="/student/results" element={<StudentResults />} />
-                <Route path="/student/profile" element={<UserProfile />} />
-              </Route>
+                {/* Student Layout Routes (Sidebar) */}
+                <Route element={<StudentLayout />}>
+                  <Route path="/student/dashboard" element={<StudentDashboard />} />
+                  <Route path="/student/assignments" element={<StudentAssignments />} />
+                  <Route path="/student/assignments/:id" element={<StudentAssignmentSubmission />} />
+                  <Route path="/student/courses" element={<StudentCourses />} />
+                  <Route path="/student/courses/:id" element={<StudentCourseDetails />} />
+                  <Route path="/student/notifications" element={<NotificationList />} />
+                  <Route path="/student/results" element={<StudentResults />} />
+                  <Route path="/student/profile" element={<UserProfile />} />
+                </Route>
 
-              {/* Redirect old routes */}
-              <Route path="/student/login" element={<Navigate to="/login" replace />} />
-              <Route path="/faculty/login" element={<Navigate to="/login" replace />} />
+                {/* Redirect old routes */}
+                <Route path="/student/login" element={<Navigate to="/login" replace />} />
+                <Route path="/faculty/login" element={<Navigate to="/login" replace />} />
 
-            </Routes>
-          </div>
+              </Routes>
+            </div>
+          </GeneratorProvider>
         </ThemeProvider>
       </AuthProvider>
     </Router>
