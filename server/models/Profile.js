@@ -11,6 +11,13 @@ const ProfileSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    profilePicture: {
+        type: String, // URL or path
+    },
+    bio: {
+        type: String,
+        maxLength: 500,
+    },
     type: {
         type: String,
         enum: ['student', 'faculty', 'admin'],

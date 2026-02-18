@@ -3,7 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { uploadSyllabus, getSyllabusList, deleteSyllabus, generateAssignmentFromSyllabus, saveGeneratedAssignment, getAssignmentsList, getAssignmentById, updateAssignment, regenerateAllQuestions, regenerateQuestion } = require('../controllers/faculty.controller');
+const { uploadSyllabus, getSyllabusList, deleteSyllabus, generateAssignmentFromSyllabus, saveGeneratedAssignment, getAssignmentsList, getAssignmentById, updateAssignment, regenerateAllQuestions, regenerateQuestion, regeneratePreviewQuestion, deleteAssignment } = require('../controllers/faculty.controller');
 const { protect } = require('../middleware/authMiddleware');
 
 // Configure Multer Storage
@@ -79,5 +79,13 @@ router.post('/assignments/:id/regenerate-all', protect, regenerateAllQuestions);
 // @route   POST /api/faculty/assignments/:id/regenerate-question
 // @access  Private
 router.post('/assignments/:id/regenerate-question', protect, regenerateQuestion);
+
+// @route   POST /api/faculty/assignments/regenerate-preview
+// @access  Private
+router.post('/assignments/regenerate-preview', protect, regeneratePreviewQuestion);
+
+// @route   DELETE /api/faculty/assignments/:id
+// @access  Private
+router.delete('/assignments/:id', protect, deleteAssignment);
 
 module.exports = router;

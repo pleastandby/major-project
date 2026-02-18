@@ -55,6 +55,7 @@ const register = async (req, res) => {
         const user = await User.create({
             email,
             passwordHash,
+            name, // Save nameCache
             roles: [role],
         });
 

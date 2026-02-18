@@ -9,8 +9,13 @@ const NotificationSchema = new mongoose.Schema({
     },
     type: {
         type: String,
-        enum: ['assignment', 'announcement', 'grade', 'system'],
+        enum: ['assignment', 'announcement', 'grade', 'system', 'admin'],
         required: true,
+    },
+    alertLevel: {
+        type: String,
+        enum: ['green', 'yellow', 'red'],
+        default: 'green',
     },
     title: {
         type: String,

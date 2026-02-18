@@ -179,8 +179,32 @@ export const AuthProvider = ({ children }) => {
         navigate('/');
     };
 
+    const updateUser = (userData) => {
+        setUser(userData);
+        localStorage.setItem('user', JSON.stringify(userData));
+    };
+
+    const refreshUser = async () => {
+        try {
+            const res = await authFetch('/api/user/profile');
+            if (res.ok) {
+                const data = await res.json();
+                // Ensure we preserve the structure expected by the app
+                const userObj = {
+                    _id: data.user._id,
+                    email: data.user.email,
+                    name: data.user.name,
+                    roles: data.user.roles
+                };
+                updateUser(userObj);
+            }
+        } catch (error) {
+            console.error('Failed to refresh user:', error);
+        }
+    };
+
     return (
-        <AuthContext.Provider value={{ user, login, register, logout, loading, authFetch }}>
+        <AuthContext.Provider value={{ user, login, register, logout, loading, authFetch, updateUser, refreshUser }}>
             {!loading && children}
         </AuthContext.Provider>
     );

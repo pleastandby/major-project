@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 @variant dark (&:where(.dark, .dark *));
 
 @theme {
@@ -15,34 +16,34 @@
 
 @layer components {
   .btn {
-    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
+    @apply px-6 py-2.5 rounded-full font-medium transition-all duration-300 flex items-center justify-center gap-2;
   }
 
   .btn-primary {
-    @apply bg-primary text-white hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20;
+    @apply bg-primary text-white shadow-md hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-70 disabled:shadow-none disabled:hover:translate-y-0;
   }
 
   .btn-secondary {
-    @apply bg-secondary text-primary hover:bg-secondary/80;
+    @apply bg-secondary text-primary hover:bg-secondary/80 hover:shadow-sm;
   }
 
   .btn-outline {
-    @apply border border-gray-200 text-gray-700 hover:bg-gray-50;
+    @apply border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 dark:border-white/20 dark:text-gray-300 dark:hover:bg-white/5;
   }
 
   .card {
-    @apply bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-200;
+    @apply bg-white dark:bg-[#1C1C1E] p-6 rounded-[24px] shadow-sm border border-gray-100/50 dark:border-white/5 hover:shadow-md transition-shadow duration-300;
   }
 
   .input-group {
-    @apply flex flex-col gap-1.5;
+    @apply flex flex-col gap-2;
   }
 
   .input-label {
-    @apply text-sm font-medium text-gray-700 dark:text-gray-300;
+    @apply text-sm font-medium text-gray-700 dark:text-gray-300 ml-1;
   }
 
   .input-field {
-    @apply px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:border-link focus:ring-4 focus:ring-link/10 outline-none transition-all;
+    @apply px-5 py-3 rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-white/5 text-gray-900 dark:text-white focus:border-link focus:ring-4 focus:ring-link/10 focus:bg-white dark:focus:bg-black/20 outline-none transition-all duration-200 placeholder-gray-400;
   }
 }

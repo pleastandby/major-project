@@ -16,6 +16,7 @@
         "jsonwebtoken": "^9.0.2",
         "mongoose": "^8.0.3",
         "multer": "^2.0.2",
+        "node-cron": "^4.2.1",
         "nodemailer": "^7.0.12",
         "pdf-parse": "^2.4.5",
         "pdfjs-dist": "^5.4.530",

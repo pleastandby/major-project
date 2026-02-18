@@ -1,9 +1,10 @@
+const mongoose = require('mongoose');
 const fs = require('fs');
 const path = require('path');
 const pdf = require('pdf-parse');
 const Syllabus = require('../models/Syllabus');
 const Assignment = require('../models/Assignment');
-const { generateJSON, generateJSONWithFile, generateMultipleQuestions } = require('../services/gemini.service');
+const { generateJSON, generateJSONWithFile, generateMultipleQuestions, regenerateSingleQuestion } = require('../services/gemini.service');
 
 // @desc    Upload syllabus
 // @route   POST /api/faculty/syllabus
@@ -12,6 +13,11 @@ const uploadSyllabus = async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ message: 'Please upload a file' });
+        }
+
+        const { courseId } = req.body;
+        if (!courseId) {
+            return res.status(400).json({ message: 'Course ID is required' });
         }
 
         // Extract Text from PDF
@@ -34,7 +40,8 @@ const uploadSyllabus = async (req, res) => {
             path: req.file.path,
             uploadedBy: req.user.id,
             size: req.file.size,
-            content: extractedText
+            content: extractedText,
+            course: courseId
         });
 
         // Return file info
@@ -129,7 +136,9 @@ const generateAssignmentFromSyllabus = async (req, res) => {
 // @access  Private
 const getSyllabusList = async (req, res) => {
     try {
-        const syllabusList = await Syllabus.find({ uploadedBy: req.user.id }).sort({ createdAt: -1 });
+        const syllabusList = await Syllabus.find({ uploadedBy: req.user.id })
+            .populate('course', 'title')
+            .sort({ createdAt: -1 });
         res.json(syllabusList);
     } catch (error) {
         console.error(error);
@@ -172,7 +181,7 @@ const deleteSyllabus = async (req, res) => {
 // @route   POST /api/faculty/assignments/save
 // @access  Private
 const saveGeneratedAssignment = async (req, res) => {
-    const { title, description, questions, syllabusId, topics, numQuestions, marksPerQuestion } = req.body;
+    const { title, description, questions, syllabusId, topics, numQuestions, marksPerQuestion, courseId, dueDate } = req.body;
 
     try {
         const assignment = await Assignment.create({
@@ -180,11 +189,13 @@ const saveGeneratedAssignment = async (req, res) => {
             description,
             questions,
             syllabusId,
+            courseId: courseId || null, // Optional Association
             createdBy: req.user.id,
             type: 'AI_Generated',
             topics,
             numQuestions,
-            marksPerQuestion
+            marksPerQuestion,
+            dueDate
         });
 
         res.status(201).json({
@@ -202,9 +213,48 @@ const saveGeneratedAssignment = async (req, res) => {
 // @access  Private
 const getAssignmentsList = async (req, res) => {
     try {
-        const assignments = await Assignment.find({ createdBy: req.user.id })
-            .sort({ createdAt: -1 })
-            .select('title description createdAt questions type');
+        const assignments = await Assignment.aggregate([
+            {
+                $match: {
+                    createdBy: new mongoose.Types.ObjectId(req.user.id)
+                }
+            },
+            {
+                $lookup: {
+                    from: 'submissions',
+                    localField: '_id',
+                    foreignField: 'assignmentId',
+                    as: 'submissions'
+                }
+            },
+            {
+                $lookup: {
+                    from: 'enrollments',
+                    localField: 'courseId',
+                    foreignField: 'courseId',
+                    pipeline: [
+                        { $match: { status: 'active' } }
+                    ],
+                    as: 'enrollments'
+                }
+            },
+            {
+                $project: {
+                    title: 1,
+                    description: 1,
+                    createdAt: 1,
+                    questions: 1,
+                    type: 1,
+                    dueDate: 1,
+                    courseId: 1,
+                    submissionCount: { $size: '$submissions' },
+                    totalStudents: { $size: '$enrollments' }
+                }
+            },
+            {
+                $sort: { createdAt: -1 }
+            }
+        ]);
         res.json(assignments);
     } catch (error) {
         console.error(error);
@@ -252,10 +302,12 @@ const updateAssignment = async (req, res) => {
         }
 
         // Update fields
-        const { title, description, questions } = req.body;
+        const { title, description, questions, dueDate, maxPoints } = req.body;
         if (title) assignment.title = title;
         if (description) assignment.description = description;
         if (questions) assignment.questions = questions;
+        if (dueDate) assignment.dueDate = dueDate;
+        if (maxPoints) assignment.maxPoints = maxPoints;
 
         await assignment.save();
 
@@ -360,6 +412,8 @@ const regenerateQuestion = async (req, res) => {
             return res.status(400).json({ message: 'Invalid question index' });
         }
 
+        const oldQuestion = assignment.questions[questionIndex].questionText;
+
         // Get syllabus content if available
         let syllabusContent = '';
         let syllabusPath = null;
@@ -367,62 +421,105 @@ const regenerateQuestion = async (req, res) => {
             const syllabus = await Syllabus.findById(syllabusId);
             if (syllabus) {
                 if (syllabus.content && syllabus.content.length > 50) {
-                    syllabusContent = syllabus.content.substring(0, 20000);
+                    syllabusContent = syllabus.content;
                 } else if (fs.existsSync(syllabus.path)) {
                     syllabusPath = syllabus.path;
                 }
             }
         }
 
-        const prompt = `
-            You are an expert educational assistant. Generate a single new question for an assignment.
-            
-            **Configuration:**
-            - **Topics:** ${topics || "General"}
-            - **Marks:** ${marksPerQuestion || 10}
-            
-            **Instructions:**
-            Generate ONE high-quality question that tests understanding. Make it different from typical questions.
-            Ensure the question is clear, specific, and appropriate for the difficulty level.
-            
-            **Output Format:**
-            Return a purely JSON object with this structure:
-            {
-                "questionText": "Your question here...",
-                "marks": ${marksPerQuestion || 10},
-                "type": "long_answer"
-            }
-        `;
-
-        let newQuestion;
-
-        // Try file-based generation first if we have a path
-        if (syllabusPath) {
-            console.log('Using file-based generation for question...');
-            newQuestion = await generateJSONWithFile(syllabusPath, 'application/pdf', prompt);
-        }
-        // Fall back to text-based generation
-        else if (syllabusContent) {
-            const fullPrompt = `
-                ${prompt}
-                
-                **Syllabus Content:**
-                ${syllabusContent}
-            `;
-            newQuestion = await generateJSON(fullPrompt);
-        }
-        // Generate without syllabus context
-        else {
-            newQuestion = await generateJSON(prompt);
-        }
+        // Call dedicated service method
+        const newQuestion = await regenerateSingleQuestion(
+            syllabusContent,
+            syllabusPath,
+            topics,
+            marksPerQuestion || assignment.questions[questionIndex].marks,
+            oldQuestion
+        );
 
         if (!newQuestion || !newQuestion.questionText) {
-            return res.status(500).json({ message: 'Failed to generate question' });
+            console.error('Gemini Regeneration Failed for Single Question');
+            return res.status(500).json({ message: 'Failed to regenerate question from AI service' });
+        }
+
+        console.log('Question Regenerated Successfully:', newQuestion.questionText);
+        res.json(newQuestion);
+
+    } catch (error) {
+        console.error('Regenerate Question Controller Error:', error);
+        res.status(500).json({ message: 'Server error regenerating question' });
+    }
+};
+
+// @desc    Delete assignment
+// @route   DELETE /api/faculty/assignments/:id
+// @access  Private
+const deleteAssignment = async (req, res) => {
+    try {
+        const assignment = await Assignment.findById(req.params.id);
+
+        if (!assignment) {
+            return res.status(404).json({ message: 'Assignment not found' });
+        }
+
+        // Verify ownership
+        if (assignment.createdBy.toString() !== req.user.id) {
+            return res.status(401).json({ message: 'Not authorized' });
+        }
+
+        await assignment.deleteOne();
+
+        res.json({ message: 'Assignment removed' });
+    } catch (error) {
+        console.error('Delete Assignment Error:', error);
+        res.status(500).json({ message: 'Server error deleting assignment' });
+    }
+};
+
+// @desc    Regenerate a single question (Preview Mode - not saved yet)
+// @route   POST /api/faculty/assignments/regenerate-preview
+// @access  Private
+const regeneratePreviewQuestion = async (req, res) => {
+    try {
+        const { syllabusId, topics, marks, currentQuestionText } = req.body;
+
+        if (!syllabusId) {
+            return res.status(400).json({ message: 'Syllabus ID is required' });
+        }
+
+        // Get syllabus content if available
+        let syllabusContent = '';
+        let syllabusPath = null;
+
+        const syllabus = await Syllabus.findById(syllabusId);
+        if (syllabus) {
+            if (syllabus.content && syllabus.content.length > 50) {
+                syllabusContent = syllabus.content;
+            } else if (fs.existsSync(syllabus.path)) {
+                syllabusPath = syllabus.path;
+            }
+        } else {
+            return res.status(404).json({ message: 'Syllabus not found' });
+        }
+
+        // Call dedicated service method
+        const newQuestion = await regenerateSingleQuestion(
+            syllabusContent,
+            syllabusPath,
+            topics,
+            marks,
+            currentQuestionText
+        );
+
+        if (!newQuestion || !newQuestion.questionText) {
+            console.error('Gemini Regeneration Failed for Preview Question');
+            return res.status(500).json({ message: 'Failed to regenerate question' });
         }
 
         res.json(newQuestion);
+
     } catch (error) {
-        console.error('Regenerate Question Error:', error);
+        console.error('Regenerate Preview Question Error:', error);
         res.status(500).json({ message: 'Server error regenerating question' });
     }
 };
@@ -437,5 +534,7 @@ module.exports = {
     getAssignmentById,
     updateAssignment,
     regenerateAllQuestions,
-    regenerateQuestion
+    regenerateQuestion,
+    regeneratePreviewQuestion,
+    deleteAssignment
 };

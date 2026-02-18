@@ -1,33 +1,51 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FileText, BookOpen, Bell, User, LogOut, Search, Sun, School, FileSpreadsheet, Sparkles } from 'lucide-react';
+import { LayoutDashboard, FileText, BookOpen, Bell, User, LogOut, Search, Sun, School, FileSpreadsheet, Sparkles, ClipboardCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useState } from 'react';
 
 const FacultySidebar = () => {
     const location = useLocation();
     const { logout } = useAuth();
     const { isDarkMode, toggleTheme } = useTheme();
 
-    const isActive = (path) => {
-        return location.pathname === path || location.pathname.startsWith(`${path}/`);
-    };
-
     const navItems = [
         { path: '/faculty/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
         { path: '/faculty/courses', icon: BookOpen, label: 'Manage Courses' },
         { path: '/faculty/assignments', icon: FileText, label: 'Assignments' },
+        { path: '/faculty/submissions', icon: ClipboardCheck, label: 'Submissions' },
         { path: '/faculty/notifications', icon: Bell, label: 'Notifications' },
         { path: '/faculty/syllabus', icon: FileSpreadsheet, label: 'Syllabus' },
         { path: '/faculty/assignments/generate', icon: Sparkles, label: 'AI Generator' },
         { path: '/faculty/profile', icon: User, label: 'Profile' }
     ];
 
+    const isActive = (path) => {
+        if (location.pathname === path) return true;
+        if (location.pathname.startsWith(`${path}/`)) {
+            // Check if there's a more specific nav item that matches
+            const betterMatch = navItems.some(item =>
+                item.path !== path &&
+                item.path.length > path.length &&
+                (location.pathname === item.path || location.pathname.startsWith(`${item.path}/`))
+            );
+            return !betterMatch;
+        }
+        return false;
+    };
+
+    const [searchTerm, setSearchTerm] = useState('');
+
+    const filteredNavItems = navItems.filter(item =>
+        item.label.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
     return (
-        <aside className="w-64 min-h-screen bg-white dark:bg-gray-900 sticky top-0 left-0 flex flex-col border-r border-gray-100 dark:border-gray-800 transition-colors duration-200">
+        <aside className="w-64 min-h-screen bg-white dark:bg-[#09090b] sticky top-0 left-0 flex flex-col border-r border-gray-100 dark:border-white/5 transition-colors duration-300">
             {/* Header */}
             <div className="p-6">
                 <Link to="/faculty/dashboard" className="flex items-center gap-3 text-primary no-underline mb-8">
-                    <div className="bg-gray-100 dark:bg-gray-800 p-2 rounded-lg transition-colors">
+                    <div className="bg-gray-100 dark:bg-white/5 p-2 rounded-lg transition-colors">
                         <School size={28} strokeWidth={1.5} className="text-gray-700 dark:text-gray-200" />
                     </div>
                     <div className="flex flex-col">
@@ -41,26 +59,28 @@ const FacultySidebar = () => {
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
                     <input
                         type="text"
-                        placeholder="Search..."
-                        className="w-full bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm pl-10 pr-4 py-3 rounded-xl border-none focus:ring-1 focus:ring-gray-200 dark:focus:ring-gray-700 outline-none transition-colors"
+                        placeholder="Search menu..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full bg-gray-50 dark:bg-white/5 text-gray-700 dark:text-gray-200 text-sm pl-10 pr-4 py-3 rounded-xl border-none focus:ring-1 focus:ring-gray-200 dark:focus:ring-white/10 outline-none transition-colors"
                     />
                 </div>
             </div>
 
             {/* Navigation */}
             <nav className="flex-1 px-4 space-y-1">
-                {navItems.map((item) => {
+                {filteredNavItems.map((item) => {
                     const active = isActive(item.path);
                     return (
                         <Link
                             key={item.path}
                             to={item.path}
-                            className={`flex items-center gap-4 px-4 py-3.5 rounded-xl text-sm font-medium transition-all duration-200 ${active
-                                ? 'text-gray-900 dark:text-white bg-transparent'
-                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800'
+                            className={`flex items-center gap-4 px-6 py-3.5 rounded-full text-sm font-medium transition-all duration-300 mx-2 ${active
+                                ? 'bg-primary text-white shadow-md shadow-primary/20 scale-[1.02]'
+                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-white/5'
                                 }`}
                         >
-                            <item.icon size={22} strokeWidth={1.5} className={active ? "text-gray-900 dark:text-white" : "text-gray-500 dark:text-gray-400"} />
+                            <item.icon size={22} strokeWidth={1.5} className={active ? "text-white" : "text-gray-500 dark:text-gray-400"} />
                             <span>{item.label}</span>
                         </Link>
                     );

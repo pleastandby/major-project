@@ -41,6 +41,11 @@ const AssignmentSchema = new mongoose.Schema({
     questions: {
         type: [Object], // Structured questions if AI generated
     },
+    valuationMode: {
+        type: String,
+        enum: ['Liberal', 'Strict'],
+        default: 'Liberal'
+    },
     visibility: {
         type: Object,
     },

@@ -3,20 +3,49 @@ import { Upload, FileText, CheckCircle, AlertCircle, Loader2 } from 'lucide-reac
 import { useAuth } from '../context/AuthContext';
 
 const FacultySyllabus = () => {
+    const [selectedCourse, setSelectedCourse] = useState('');
+    const [courses, setCourses] = useState([]);
+    const [loadingCourses, setLoadingCourses] = useState(true);
+
+    // RESTORED MISSING STATE VARIABLES
     const [file, setFile] = useState(null);
     const [uploading, setUploading] = useState(false);
     const [uploadStatus, setUploadStatus] = useState(null); // 'success', 'error', null
     const [message, setMessage] = useState('');
     const [syllabi, setSyllabi] = useState([]);
     const [loadingList, setLoadingList] = useState(true);
-    const { token, authFetch } = useAuth(); // Use authFetch for requests
+
+    const { token, authFetch, user } = useAuth(); // Use authFetch for requests
+
+    const fetchCourses = async () => {
+        try {
+            const res = await authFetch('/api/courses/my');
+            if (res.ok) {
+                const data = await res.json();
+                setCourses(data.created || []);
+                // Set default selected course if available
+                if (data.created && data.created.length > 0) {
+                    setSelectedCourse(data.created[0]._id);
+                }
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoadingCourses(false);
+        }
+    };
 
     const fetchSyllabi = async () => {
         try {
             const res = await authFetch('/api/faculty/syllabus');
             if (res.ok) {
                 const data = await res.json();
-                setSyllabi(data);
+                if (Array.isArray(data)) {
+                    setSyllabi(data);
+                } else {
+                    console.error('API returned non-array:', data);
+                    setSyllabi([]);
+                }
             }
         } catch (error) {
             console.error('Failed to fetch syllabi', error);
@@ -26,6 +55,7 @@ const FacultySyllabus = () => {
     };
 
     useEffect(() => {
+        fetchCourses();
         fetchSyllabi();
     }, [authFetch]);
 
@@ -74,6 +104,11 @@ const FacultySyllabus = () => {
     const handleUpload = async (e) => {
         e.preventDefault();
         if (!file) return;
+        if (!selectedCourse) {
+            setUploadStatus('error');
+            setMessage('Please select a course.');
+            return;
+        }
 
         setUploading(true);
         setUploadStatus(null);
@@ -81,6 +116,7 @@ const FacultySyllabus = () => {
 
         const formData = new FormData();
         formData.append('syllabus', file);
+        formData.append('courseId', selectedCourse);
 
         try {
             // Note: In a real environment, you should use an environment variable for the API URL
@@ -111,6 +147,16 @@ const FacultySyllabus = () => {
         }
     };
 
+    // Group Syllabi by Course
+    const groupedSyllabi = syllabi.reduce((acc, syllabus) => {
+        const courseTitle = syllabus.course?.title || 'Unassigned';
+        if (!acc[courseTitle]) {
+            acc[courseTitle] = [];
+        }
+        acc[courseTitle].push(syllabus);
+        return acc;
+    }, {});
+
     return (
         <div className="p-8 max-w-4xl mx-auto">
             <div className="mb-8">
@@ -127,10 +173,29 @@ const FacultySyllabus = () => {
 
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Upload Syllabus PDF</h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 text-center max-w-sm">
-                        Select a PDF file to upload. This will be accessible to students enrolled in your courses.
+                        Select a course and upload a PDF file. This will be accessible to students enrolled in your courses.
                     </p>
 
                     <form onSubmit={handleUpload} className="w-full max-w-md flex flex-col items-center gap-4">
+
+                        {/* Course Selection */}
+                        <div className="w-full">
+                            <select
+                                value={selectedCourse}
+                                onChange={(e) => setSelectedCourse(e.target.value)}
+                                className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                disabled={loadingCourses}
+                                required
+                            >
+                                <option value="" disabled>Select a Course</option>
+                                {courses.map(course => (
+                                    <option key={course._id} value={course._id}>
+                                        {course.title} ({course.code})
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
                         <div className="relative w-full">
                             <input
                                 type="file"
@@ -188,43 +253,53 @@ const FacultySyllabus = () => {
 
             {/* Syllabus List */}
             <div className="mt-8">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Uploaded Syllabi</h2>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Uploaded Syllabi</h2>
                 {loadingList ? (
                     <div className="flex justify-center py-8">
                         <Loader2 className="animate-spin text-primary" size={30} />
                     </div>
                 ) : syllabi.length > 0 ? (
-                    <div className="grid grid-cols-1 gap-4">
-                        {syllabi.map((syllabus) => (
-                            <div key={syllabus._id} className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                                <div className="flex items-center gap-4">
-                                    <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded-lg">
-                                        <FileText className="text-red-500" size={24} />
-                                    </div>
-                                    <div>
-                                        <h4 className="font-medium text-gray-900 dark:text-white truncate max-w-xs sm:max-w-md" title={syllabus.originalName}>
-                                            {syllabus.originalName}
-                                        </h4>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                                            {(syllabus.size / 1024 / 1024).toFixed(2)} MB • {new Date(syllabus.createdAt).toLocaleDateString()}
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-2 w-full sm:w-auto">
-                                    <a
-                                        href={`http://localhost:5000/uploads/faculty/${syllabus.filename}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex-1 sm:flex-none py-2 px-4 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-center"
-                                    >
-                                        View
-                                    </a>
-                                    <button
-                                        onClick={() => handleDelete(syllabus._id)}
-                                        className="flex-1 sm:flex-none py-2 px-4 text-sm font-medium text-red-600 bg-red-50 dark:bg-red-900/10 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors"
-                                    >
-                                        Remove
-                                    </button>
+                    <div className="space-y-8">
+                        {Object.entries(groupedSyllabi).map(([courseTitle, courseSyllabi]) => (
+                            <div key={courseTitle}>
+                                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2">
+                                    <span className="w-2 h-6 bg-primary rounded-full"></span>
+                                    {courseTitle}
+                                </h3>
+                                <div className="grid grid-cols-1 gap-4">
+                                    {courseSyllabi.map((syllabus) => (
+                                        <div key={syllabus._id} className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:border-primary/30 transition-colors">
+                                            <div className="flex items-center gap-4">
+                                                <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded-lg">
+                                                    <FileText className="text-red-500" size={24} />
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-medium text-gray-900 dark:text-white truncate max-w-xs sm:max-w-md" title={syllabus.originalName}>
+                                                        {syllabus.originalName}
+                                                    </h4>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                        {(syllabus.size / 1024 / 1024).toFixed(2)} MB • {new Date(syllabus.createdAt).toLocaleDateString()}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2 w-full sm:w-auto">
+                                                <a
+                                                    href={`http://localhost:5000/uploads/faculty/${syllabus.filename}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex-1 sm:flex-none py-2 px-4 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-center"
+                                                >
+                                                    View
+                                                </a>
+                                                <button
+                                                    onClick={() => handleDelete(syllabus._id)}
+                                                    className="flex-1 sm:flex-none py-2 px-4 text-sm font-medium text-red-600 bg-red-50 dark:bg-red-900/10 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors"
+                                                >
+                                                    Remove
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         ))}
