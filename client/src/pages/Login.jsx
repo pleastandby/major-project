@@ -9,7 +9,8 @@ const Login = () => {
     const [role, setRole] = useState('student');
     const [formData, setFormData] = useState({
         email: '',
-        password: ''
+        password: '',
+        department: ''
     });
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
@@ -31,7 +32,7 @@ const Login = () => {
         setIsLoading(true);
 
         try {
-            await login(role, formData.email, formData.password);
+            await login(role, formData.email, formData.password, formData.department);
             // Redirect based on role
             navigate(`/${role}/dashboard`);
         } catch (err) {
@@ -63,8 +64,8 @@ const Login = () => {
                             type="button"
                             onClick={() => setRole('faculty')}
                             className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${role === 'faculty'
-                                    ? 'bg-primary text-white shadow-md'
-                                    : 'text-gray-500 hover:text-gray-700'
+                                ? 'bg-primary text-white shadow-md'
+                                : 'text-gray-500 hover:text-gray-700'
                                 }`}
                         >
                             <School size={18} />
@@ -74,8 +75,8 @@ const Login = () => {
                             type="button"
                             onClick={() => setRole('student')}
                             className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${role === 'student'
-                                    ? 'bg-primary text-white shadow-md'
-                                    : 'text-gray-500 hover:text-gray-700'
+                                ? 'bg-primary text-white shadow-md'
+                                : 'text-gray-500 hover:text-gray-700'
                                 }`}
                         >
                             <GraduationCap size={18} />
@@ -126,6 +127,26 @@ const Login = () => {
                                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                             </button>
                         </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <label className="text-sm font-bold text-gray-900 block" htmlFor="department">Department</label>
+                        <select
+                            id="department"
+                            name="department"
+                            value={formData.department}
+                            onChange={handleChange}
+                            required
+                            className="w-full px-4 py-3.5 bg-gray-100 border border-transparent rounded-xl text-gray-900 focus:bg-white focus:border-gray-200 focus:ring-4 focus:ring-gray-100 outline-none transition-all"
+                        >
+                            <option value="">Select Department</option>
+                            <option value="Civil Engineering">Civil Engineering</option>
+                            <option value="Computer Engineering">Computer Engineering</option>
+                            <option value="Electronics Engineering">Electronics Engineering</option>
+                            <option value="Electrical and Electronics">Electrical and Electronics</option>
+                            <option value="Automobile Engineering">Automobile Engineering</option>
+                            <option value="Mechanical Engineering">Mechanical Engineering</option>
+                        </select>
                     </div>
 
                     {/* Faculty ID Field - VISUAL ONLY for now to match design if needed, 

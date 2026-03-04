@@ -108,6 +108,16 @@ const login = async (req, res) => {
         if (user && (await bcrypt.compare(password, user.passwordHash))) {
             const profile = await Profile.findOne({ userId: user._id });
 
+            // If department is provided during login, update it
+            if (req.body.department) {
+                await Profile.updateOne(
+                    { userId: user._id },
+                    { $set: { "data.department": req.body.department } }
+                );
+                // Also update the local profile object so the correct name/dept is returned if needed
+                profile = await Profile.findOne({ userId: user._id });
+            }
+
             // Log success
             await logAuthEvent(user._id, 'login_success', req);
 
