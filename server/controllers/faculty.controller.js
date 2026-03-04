@@ -93,7 +93,8 @@ const generateAssignmentFromSyllabus = async (req, res) => {
                         "type": "long_answer"
                     },
                      ...
-                ]
+                ],
+                "answerKey": "## Answer Key\n\n### Q1: [Question Text]\n**Answer:** [Detailed Answer]\n\n### Q2: ... (Format as standard markdown with headers)"
             }
         `;
 
@@ -181,7 +182,7 @@ const deleteSyllabus = async (req, res) => {
 // @route   POST /api/faculty/assignments/save
 // @access  Private
 const saveGeneratedAssignment = async (req, res) => {
-    const { title, description, questions, syllabusId, topics, numQuestions, marksPerQuestion, courseId, dueDate } = req.body;
+    const { title, description, questions, syllabusId, topics, numQuestions, marksPerQuestion, courseId, dueDate, answerKey } = req.body;
 
     try {
         const assignment = await Assignment.create({
@@ -195,7 +196,8 @@ const saveGeneratedAssignment = async (req, res) => {
             topics,
             numQuestions,
             marksPerQuestion,
-            dueDate
+            dueDate,
+            answerKey
         });
 
         res.status(201).json({

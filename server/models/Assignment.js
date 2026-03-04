@@ -70,6 +70,10 @@ const AssignmentSchema = new mongoose.Schema({
     lastRegenerated: {
         type: Date,
     },
+    answerKey: {
+        type: String, // Markdown or Text format
+        select: false // Exclude by default for security/performance, but need to explicitly include when grading
+    },
 }, {
     timestamps: true,
 });

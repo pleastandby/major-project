@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useGenerator } from '../context/GeneratorContext';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Loader2, Sparkles, FileText, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 
 const AssignmentGenerator = () => {
     const { authFetch } = useAuth();
@@ -118,6 +119,7 @@ const AssignmentGenerator = () => {
                     topics,
                     numQuestions: parseInt(numQuestions),
                     marksPerQuestion: parseInt(marksPerQuestion),
+                    answerKey: generatedAssignment.answerKey, // Include answer key
                     dueDate
                 })
             });
@@ -403,6 +405,17 @@ const AssignmentGenerator = () => {
                                     </div>
                                 ))}
                             </div>
+
+                            {generatedAssignment.answerKey && (
+                                <div className="mt-8">
+                                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Answer Key (Faculty Only)</h3>
+                                    <div className="p-4 bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-100 dark:border-yellow-900/20 rounded-xl text-sm text-gray-800 dark:text-gray-200">
+                                        <div className="prose prose-sm dark:prose-invert max-w-none">
+                                            <ReactMarkdown>{generatedAssignment.answerKey}</ReactMarkdown>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
                             <div className="mt-8 flex justify-end gap-3">
                                 <button

@@ -16,6 +16,10 @@ const evaluateSubmissionAI = async (submission, assignment) => {
         assignmentContext += `\nSPECIFIC QUESTIONS:\n${JSON.stringify(assignment.questions, null, 2)}\n`;
     }
 
+    if (assignment.answerKey) {
+        assignmentContext += `\nANSWER KEY:\n${assignment.answerKey}\n`;
+    }
+
     // Calculate dynamic max points if questions exist
     let dynamicMaxPoints = assignment.maxPoints;
     if (assignment.questions && assignment.questions.length > 0) {
@@ -309,7 +313,10 @@ const getSubmission = async (req, res) => {
     try {
         const submission = await Submission.findById(req.params.id)
             .populate('studentId', 'name email')
-            .populate('assignmentId'); // populate full assignment for maxPoints etc.
+            .populate({
+                path: 'assignmentId',
+                select: '+answerKey' // Explicitly select the hidden field
+            });
         if (!submission) {
             return res.status(404).json({ message: 'Submission not found' });
         }
