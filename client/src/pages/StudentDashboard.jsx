@@ -12,15 +12,18 @@ const StudentDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [overviewData, setOverviewData] = useState(null);
     const [notifications, setNotifications] = useState([]);
+    const [suggestions, setSuggestions] = useState([]);
+    const [joining, setJoining] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
                 // Parallel fetch
-                const [coursesRes, notifsRes, overviewRes] = await Promise.all([
+                const [coursesRes, notifsRes, overviewRes, suggRes] = await Promise.all([
                     authFetch('/api/courses/my'),
                     authFetch('/api/notifications'),
-                    authFetch('/api/dashboard/student/overview')
+                    authFetch('/api/dashboard/student/overview'),
+                    authFetch('/api/courses/suggestions')
                 ]);
 
                 if (coursesRes.ok) {
@@ -38,6 +41,11 @@ const StudentDashboard = () => {
                     setOverviewData(data);
                 }
 
+                if (suggRes.ok) {
+                    const data = await suggRes.json();
+                    setSuggestions(Array.isArray(data) ? data : []);
+                }
+
             } catch (err) {
                 console.error(err);
             } finally {
@@ -47,6 +55,36 @@ const StudentDashboard = () => {
 
         fetchData();
     }, [authFetch]);
+
+    const handleJoinAllSuggestions = async () => {
+        if (suggestions.length === 0) return;
+        setJoining(true);
+        try {
+            const courseIds = suggestions.map(c => c._id);
+            const res = await authFetch('/api/courses/join-multiple', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ courseIds })
+            });
+            if (res.ok) {
+                // Refresh dashboard courses
+                const coursesRes = await authFetch('/api/courses/my');
+                if (coursesRes.ok) {
+                    const data = await coursesRes.json();
+                    setCourses(Array.isArray(data.enrolled) ? data.enrolled : []);
+                }
+                // Clear suggestions
+                setSuggestions([]);
+            } else {
+                alert('Failed to join courses.');
+            }
+        } catch (error) {
+            console.error('Error joining courses:', error);
+            alert('An error occurred.');
+        } finally {
+            setJoining(false);
+        }
+    };
 
     return (
         <div className="max-w-7xl mx-auto">
@@ -66,7 +104,7 @@ const StudentDashboard = () => {
                     {overviewData && (
                         <div className="animate-fade-in-up">
                             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                                <span className="bg-gradient-to-r from-primary to-link text-transparent bg-clip-text">Smart Overview</span>
+                                <span className="bg-linear-to-r from-primary to-link text-transparent bg-clip-text">Smart Overview</span>
                                 <span className="text-xs font-normal px-2 py-0.5 bg-link/10 text-link rounded-full">AI Insights</span>
                             </h2>
 
@@ -139,6 +177,45 @@ const StudentDashboard = () => {
                                             )}
                                         </div>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Smart Course Suggestions (Enrollment) Context */}
+                    {!loading && suggestions.length > 0 && (
+                        <div className="mb-8 animate-fade-in-up">
+                            <div className="bg-linear-to-r from-purple-50 to-blue-50 dark:from-purple-900/10 dark:to-blue-900/10 rounded-2xl p-6 border border-purple-100 dark:border-purple-800/30">
+                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                                    <div>
+                                        <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                            <span className="text-purple-600 dark:text-purple-400">✨ Course Suggestions for Semester {overviewData?.profile?.semester || 'Your Semester'}</span>
+                                        </h3>
+                                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Based on your department.</p>
+                                    </div>
+                                    <button
+                                        onClick={handleJoinAllSuggestions}
+                                        disabled={joining}
+                                        className="btn bg-purple-600 hover:bg-purple-700 text-white shadow-md shadow-purple-500/20 disabled:opacity-70 whitespace-nowrap"
+                                    >
+                                        {joining ? 'Joining...' : 'Join All Recommended Courses'}
+                                    </button>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {suggestions.map(course => (
+                                        <div key={course._id} className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-purple-100/50 dark:border-gray-700 flex flex-col justify-between">
+                                            <div>
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-white bg-${course.theme?.color || 'blue'}-500 shadow-sm`}>
+                                                        {course.theme?.icon ? course.theme.icon.charAt(0).toUpperCase() : course.title.charAt(0).toUpperCase()}
+                                                    </span>
+                                                    <p className="text-xs font-bold text-gray-500 tracking-wider w-full truncate">{course.code}</p>
+                                                </div>
+                                                <h4 className="font-semibold text-gray-900 dark:text-white text-sm line-clamp-2">{course.title}</h4>
+                                                <p className="text-xs text-gray-500 mt-1">By {course.createdBy?.name || 'Faculty'}</p>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         </div>

@@ -47,6 +47,10 @@ const SubmissionSchema = new mongoose.Schema({
         enum: ['submitted', 'late', 'graded', 'resubmit_required'],
         default: 'submitted',
     },
+    resubmissionRequested: {
+        type: Boolean,
+        default: false
+    }
 }, {
     timestamps: true,
 });

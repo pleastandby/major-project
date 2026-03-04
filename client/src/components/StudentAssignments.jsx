@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FileText, Calendar, Clock, ChevronRight, AlertCircle, CheckCircle, BookOpen } from 'lucide-react';
+import { FileText, Calendar, Clock, ChevronRight, AlertCircle, CheckCircle, BookOpen, RotateCcw } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const StudentAssignments = () => {
@@ -121,6 +121,12 @@ const StudentAssignments = () => {
                                     <span className="flex items-center gap-1 text-red-500 text-xs font-medium bg-red-50 dark:bg-red-900/10 px-2 py-1 rounded-full">
                                         <AlertCircle size={12} />
                                         Overdue
+                                    </span>
+                                )}
+                                {assignment.resubmissionRequested && (
+                                    <span className="flex items-center gap-1 text-red-500 text-xs font-medium bg-red-50 dark:bg-red-900/10 px-2 py-1 rounded-full border border-red-200 dark:border-red-800">
+                                        <RotateCcw size={12} />
+                                        Resubmit Required
                                     </span>
                                 )}
                             </div>

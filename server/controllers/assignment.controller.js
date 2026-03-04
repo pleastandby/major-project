@@ -134,7 +134,8 @@ const getStudentAssignments = async (req, res) => {
                 ...assignment,
                 isSubmitted: !!submission,
                 submittedAt: submission ? submission.createdAt : null,
-                submissionGrade: submission ? submission.grade : null
+                submissionGrade: submission ? submission.grade : null,
+                resubmissionRequested: submission ? submission.resubmissionRequested : false
             };
         });
 

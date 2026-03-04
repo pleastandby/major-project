@@ -11,6 +11,8 @@ const getStudentOverview = async (req, res) => {
     try {
         const userId = req.user.id;
 
+        const profile = await Profile.findOne({ userId });
+
         // 1. Get Enrolled Courses
         const enrollments = await Enrollment.find({ userId });
         const courseIds = enrollments.map(e => e.courseId);
@@ -133,6 +135,7 @@ const getStudentOverview = async (req, res) => {
         }
 
         res.json({
+            profile: profile ? profile.data : {},
             metrics: {
                 enrolledCourses: courseIds.length,
                 avgGrade,

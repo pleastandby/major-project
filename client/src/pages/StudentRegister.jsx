@@ -8,6 +8,7 @@ const StudentRegister = () => {
     const [password, setPassword] = useState('');
     const [regNo, setRegNo] = useState('');
     const [department, setDepartment] = useState('');
+    const [semester, setSemester] = useState('');
 
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -27,7 +28,8 @@ const StudentRegister = () => {
             role: 'student',
             profileData: {
                 registrationNo: regNo,
-                department
+                department,
+                semester: parseInt(semester, 10)
             }
         };
 
@@ -85,6 +87,16 @@ const StudentRegister = () => {
                         <option value="Electrical and Electronics">Electrical and Electronics</option>
                         <option value="Automobile Engineering">Automobile Engineering</option>
                         <option value="Mechanical Engineering">Mechanical Engineering</option>
+                    </select>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-medium text-primary">Semester</label>
+                    <select value={semester} onChange={(e) => setSemester(e.target.value)} required className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-link focus:ring-4 focus:ring-link/10 outline-none transition-all bg-white">
+                        <option value="">Select Semester</option>
+                        {[1, 2, 3, 4, 5, 6, 7, 8].map(sem => (
+                            <option key={sem} value={sem}>Semester {sem}</option>
+                        ))}
                     </select>
                 </div>
 

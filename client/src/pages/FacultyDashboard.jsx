@@ -74,7 +74,7 @@ const FacultyDashboard = () => {
                     {overviewData && (
                         <div className="animate-fade-in-up">
                             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                                <span className="bg-gradient-to-r from-primary to-link text-transparent bg-clip-text">Course Command Center</span>
+                                <span className="bg-linear-to-r from-primary to-link text-transparent bg-clip-text">Course Command Center</span>
                             </h2>
 
                             {/* Stats Row */}

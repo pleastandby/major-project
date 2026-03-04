@@ -11,7 +11,9 @@ const {
     getFacultyStudents,
     removeStudentFromCourse,
     leaveCourse,
-    getCourseStudents
+    getCourseStudents,
+    getSuggestedCourses,
+    joinMultipleCourses
 } = require('../controllers/course.controller');
 const { protect } = require('../middleware/authMiddleware');
 const multer = require('multer');
@@ -49,6 +51,8 @@ router.get('/', protect, getCourses);
 router.post('/', protect, upload.single('logo'), createCourse);
 router.get('/my', protect, getMyCourses);
 router.get('/students/all', protect, getFacultyStudents);
+router.get('/suggestions', protect, getSuggestedCourses);
+router.post('/join-multiple', protect, joinMultipleCourses);
 router.post('/join', protect, joinCourse);
 router.delete('/:courseId/students/:studentId', protect, removeStudentFromCourse);
 router.delete('/:id/leave', protect, leaveCourse);

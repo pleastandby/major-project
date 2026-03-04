@@ -9,8 +9,7 @@ const Login = () => {
     const [role, setRole] = useState('student');
     const [formData, setFormData] = useState({
         email: '',
-        password: '',
-        department: ''
+        password: ''
     });
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
@@ -32,7 +31,7 @@ const Login = () => {
         setIsLoading(true);
 
         try {
-            await login(role, formData.email, formData.password, formData.department);
+            await login(role, formData.email, formData.password);
             // Redirect based on role
             navigate(`/${role}/dashboard`);
         } catch (err) {
@@ -47,7 +46,7 @@ const Login = () => {
         <div className="min-h-[80vh] flex items-center justify-center">
             <div className="bg-white px-10 py-12 rounded-3xl shadow-xl shadow-gray-100/50 border border-gray-100 max-w-md w-full relative overflow-hidden">
                 {/* Decorative background element */}
-                <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-primary to-gray-600"></div>
+                <div className="absolute top-0 left-0 w-full h-1.5 bg-linear-to-r from-primary to-gray-600"></div>
 
                 <div className="text-center mb-10">
                     <h1 className="text-3xl font-bold text-gray-900 mb-2">Login</h1>
@@ -127,26 +126,6 @@ const Login = () => {
                                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                             </button>
                         </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-bold text-gray-900 block" htmlFor="department">Department</label>
-                        <select
-                            id="department"
-                            name="department"
-                            value={formData.department}
-                            onChange={handleChange}
-                            required
-                            className="w-full px-4 py-3.5 bg-gray-100 border border-transparent rounded-xl text-gray-900 focus:bg-white focus:border-gray-200 focus:ring-4 focus:ring-gray-100 outline-none transition-all"
-                        >
-                            <option value="">Select Department</option>
-                            <option value="Civil Engineering">Civil Engineering</option>
-                            <option value="Computer Engineering">Computer Engineering</option>
-                            <option value="Electronics Engineering">Electronics Engineering</option>
-                            <option value="Electrical and Electronics">Electrical and Electronics</option>
-                            <option value="Automobile Engineering">Automobile Engineering</option>
-                            <option value="Mechanical Engineering">Mechanical Engineering</option>
-                        </select>
                     </div>
 
                     {/* Faculty ID Field - VISUAL ONLY for now to match design if needed, 

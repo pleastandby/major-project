@@ -10,7 +10,9 @@ const {
     getStudentSubmissions,
     approveSubmission,
     overrideGrade,
-    getSubmissionsByAssignment
+    getSubmissionsByAssignment,
+    deleteSubmission,
+    requestResubmission
 } = require('../controllers/submission.controller');
 
 // Multer Setup
@@ -51,5 +53,7 @@ router.get('/my-results', protect, getStudentSubmissions);
 router.get('/assignment/:assignmentId', protect, getMySubmission);
 router.get('/list/:assignmentId', protect, getSubmissionsByAssignment);
 router.get('/:id', protect, getSubmission);
+router.delete('/:id', protect, deleteSubmission);
+router.post('/:id/request-resubmit', protect, requestResubmission);
 
 module.exports = router;

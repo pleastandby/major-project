@@ -9,7 +9,8 @@ import {
     Save,
     Download,
     Maximize2,
-    Loader2
+    Loader2,
+    RotateCcw
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
@@ -117,6 +118,27 @@ const SubmissionGrading = () => {
         }
     };
 
+    const handleRequestResubmission = async () => {
+        if (!window.confirm("Are you sure you want to request a resubmission? This will flag the assignment for the student.")) return;
+
+        try {
+            const res = await authFetch(`/api/submissions/${id}/request-resubmit`, {
+                method: 'POST'
+            });
+
+            if (res.ok) {
+                setSubmission(prev => ({ ...prev, status: 'resubmit_required', resubmissionRequested: true }));
+                alert("Resubmission requested successfully!");
+            } else {
+                const data = await res.json();
+                alert(data.message || 'Failed to request resubmission');
+            }
+        } catch (error) {
+            console.error("Error requesting resubmission:", error);
+            alert("An error occurred");
+        }
+    };
+
     if (loading) {
         return (
             <div className="flex justify-center items-center h-screen bg-gray-50 dark:bg-gray-900">
@@ -165,6 +187,16 @@ const SubmissionGrading = () => {
                         <CheckCircle size={18} />
                         Approve & Publish
                     </button>
+                    {!submission.resubmissionRequested && (
+                        <button
+                            onClick={handleRequestResubmission}
+                            className="flex items-center gap-2 bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/40 border border-red-200 dark:border-red-800 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                            title="Request the student to resubmit this assignment"
+                        >
+                            <RotateCcw size={18} />
+                            Request Resubmission
+                        </button>
+                    )}
                 </div>
             </div>
 

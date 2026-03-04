@@ -517,6 +517,87 @@ const getCourseStudents = async (req, res) => {
     }
 };
 
+// @desc    Get course suggestions based on student profile (department and semester)
+// @route   GET /api/courses/suggestions
+// @access  Private (Student)
+const getSuggestedCourses = async (req, res) => {
+    try {
+        const profile = await Profile.findOne({ userId: req.user.id });
+        if (!profile || !profile.data) {
+            return res.json([]);
+        }
+
+        const { department, semester } = profile.data;
+
+        if (!department || !semester) {
+            return res.json([]);
+        }
+
+        // Find courses matching department and semester
+        const suggestedCourses = await Course.find({
+            'meta.department': department,
+            'meta.semester': semester.toString()
+        }).populate('createdBy', 'name email').lean();
+
+        if (suggestedCourses.length === 0) {
+            return res.json([]);
+        }
+
+        // Filter out courses the student is already enrolled in
+        const enrollments = await Enrollment.find({ userId: req.user.id });
+        const enrolledCourseIds = enrollments.map(e => e.courseId.toString());
+
+        const filteredSuggestions = suggestedCourses.filter(course =>
+            !enrolledCourseIds.includes(course._id.toString())
+        );
+
+        res.json(filteredSuggestions);
+    } catch (error) {
+        console.error('Error fetching course suggestions:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// @desc    Join multiple courses
+// @route   POST /api/courses/join-multiple
+// @access  Private (Student)
+const joinMultipleCourses = async (req, res) => {
+    try {
+        const { courseIds } = req.body;
+
+        if (!courseIds || !Array.isArray(courseIds) || courseIds.length === 0) {
+            return res.status(400).json({ message: 'No courses provided' });
+        }
+
+        const enrollments = [];
+
+        for (const courseId of courseIds) {
+            const course = await Course.findById(courseId);
+            if (!course) continue;
+
+            // Check if already enrolled
+            const alreadyEnrolled = await Enrollment.findOne({
+                userId: req.user.id,
+                courseId: course._id
+            });
+
+            if (!alreadyEnrolled) {
+                const enrollment = await Enrollment.create({
+                    userId: req.user.id,
+                    courseId: course._id,
+                    roleInCourse: 'student'
+                });
+                enrollments.push(enrollment);
+            }
+        }
+
+        res.status(200).json({ message: `Successfully joined ${enrollments.length} courses`, enrollments });
+    } catch (error) {
+        console.error('Error joining multiple courses:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
 module.exports = {
     createCourse,
     getCourses,
@@ -528,5 +609,7 @@ module.exports = {
     getFacultyStudents,
     removeStudentFromCourse,
     leaveCourse,
-    getCourseStudents
+    getCourseStudents,
+    getSuggestedCourses,
+    joinMultipleCourses
 };

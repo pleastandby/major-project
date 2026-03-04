@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { FileText, Upload, CheckCircle, Wand2, Calendar, Tag, AlertCircle, FileType, ArrowLeft, Clock, User } from 'lucide-react';
+import { FileText, Upload, CheckCircle, Wand2, Calendar, Tag, AlertCircle, FileType, ArrowLeft, Clock, User, Trash2 } from 'lucide-react';
 import LoadingSpinner from './LoadingSpinner';
 import ReactMarkdown from 'react-markdown';
 
 const StudentAssignmentSubmission = () => {
     const { id } = useParams();
-    const { authFetch, user } = useAuth();
+    const { authFetch } = useAuth();
     const navigate = useNavigate();
 
     const [assignment, setAssignment] = useState(null);
@@ -21,6 +21,7 @@ const StudentAssignmentSubmission = () => {
 
     useEffect(() => {
         fetchData();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id]);
 
     const fetchData = async () => {
@@ -121,6 +122,29 @@ const StudentAssignmentSubmission = () => {
             console.error(error);
         } finally {
             setGrading(false);
+        }
+    };
+
+    const handleDeleteSubmission = async () => {
+        if (!submission) return;
+        if (!confirm('Are you sure you want to delete this submission and resubmit?')) return;
+
+        try {
+            const res = await authFetch(`/api/submissions/${submission._id}`, {
+                method: 'DELETE'
+            });
+
+            if (res.ok) {
+                setSubmission(null);
+                setExtractedText('');
+                setFile(null);
+            } else {
+                const data = await res.json();
+                alert(data.message || 'Failed to delete submission');
+            }
+        } catch (error) {
+            console.error('Error uploading:', error);
+            alert('Error deleting submission');
         }
     };
 
@@ -235,15 +259,25 @@ const StudentAssignmentSubmission = () => {
 
                         {submission ? (
                             <div className="animate-fade-in-up">
-                                <div className="bg-green-50/50 dark:bg-green-900/10 p-4 rounded-xl border border-green-100 dark:border-green-800 flex items-center gap-3 text-green-700 dark:text-green-400 mb-6">
-                                    <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center shrink-0">
-                                        <CheckCircle size={18} className="text-green-600 dark:text-green-400" />
+                                {submission.resubmissionRequested ? (
+                                    <div className="bg-red-50 dark:bg-red-900/10 p-4 rounded-xl border border-red-200 dark:border-red-800 flex items-start gap-3 text-red-700 dark:text-red-400 mb-6">
+                                        <AlertCircle size={20} className="mt-0.5 shrink-0 text-red-600 dark:text-red-400" />
+                                        <div>
+                                            <p className="font-bold">Resubmission Required</p>
+                                            <p className="text-sm mt-1">Your instructor has requested that you resubmit this assignment. Please delete your current submission and upload a new one.</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p className="font-bold text-gray-900 dark:text-gray-100">Submitted Successfully</p>
-                                        <p className="text-xs text-green-700/80 dark:text-green-400/80">Uploaded on {new Date(submission.createdAt).toLocaleString()}</p>
+                                ) : (
+                                    <div className="bg-green-50/50 dark:bg-green-900/10 p-4 rounded-xl border border-green-100 dark:border-green-800 flex items-center gap-3 text-green-700 dark:text-green-400 mb-6">
+                                        <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center shrink-0">
+                                            <CheckCircle size={18} className="text-green-600 dark:text-green-400" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="font-bold text-gray-900 dark:text-gray-100">Submitted Successfully</p>
+                                            <p className="text-xs text-green-700/80 dark:text-green-400/80">Uploaded on {new Date(submission.createdAt).toLocaleString()}</p>
+                                        </div>
                                     </div>
-                                </div>
+                                )}
 
                                 {extractedText && (
                                     <div className="mb-6">
@@ -261,6 +295,28 @@ const StudentAssignmentSubmission = () => {
                                         </div>
                                     </div>
                                 )}
+
+                                {/* Delete Submission Logic */}
+                                {(() => {
+                                    const now = Date.now();
+                                    const submittedAt = new Date(submission.submittedAt).getTime();
+                                    const isWithinTwoHours = (now - submittedAt) <= (2 * 60 * 60 * 1000);
+
+                                    if (isWithinTwoHours || submission.resubmissionRequested) {
+                                        return (
+                                            <div className="mt-6 flex justify-end">
+                                                <button
+                                                    onClick={handleDeleteSubmission}
+                                                    className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-transparent border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-sm font-medium transition-colors"
+                                                >
+                                                    <Trash2 size={16} />
+                                                    {submission.resubmissionRequested ? 'Delete & Resubmit' : 'Delete Submission'}
+                                                </button>
+                                            </div>
+                                        );
+                                    }
+                                    return null;
+                                })()}
                             </div>
                         ) : (
                             <div

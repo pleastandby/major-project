@@ -1,5 +1,7 @@
 const Submission = require('../models/Submission');
 const Assignment = require('../models/Assignment');
+const fs = require('fs');
+const path = require('path');
 const { extractText } = require('../services/ocr.service');
 const { generateJSON } = require('../services/gemini.service');
 const { createNotificationInternal } = require('./notification.controller');
@@ -377,6 +379,83 @@ const getStudentSubmissions = async (req, res) => {
     }
 }
 
+// @desc    Delete a submission (allowed if within 2 hours or if resubmission requested)
+// @route   DELETE /api/submissions/:id
+// @access  Private (Student)
+const deleteSubmission = async (req, res) => {
+    try {
+        const submission = await Submission.findById(req.params.id);
+
+        if (!submission) {
+            return res.status(404).json({ message: 'Submission not found' });
+        }
+
+        if (submission.studentId.toString() !== req.user.id) {
+            return res.status(403).json({ message: 'Not authorized to delete this submission' });
+        }
+
+        const now = Date.now();
+        const submittedAt = new Date(submission.submittedAt).getTime();
+        const isWithinTwoHours = (now - submittedAt) <= (2 * 60 * 60 * 1000);
+
+        if (!isWithinTwoHours && !submission.resubmissionRequested) {
+            return res.status(403).json({ message: 'Cannot delete submission after 2 hours unless resubmission is requested by faculty.' });
+        }
+
+        // Delete physical files
+        if (submission.files && submission.files.length > 0) {
+            submission.files.forEach(file => {
+                try {
+                    if (fs.existsSync(file.path)) {
+                        fs.unlinkSync(file.path);
+                    }
+                } catch (err) {
+                    console.error('Failed to delete file:', file.path, err);
+                }
+            });
+        }
+
+        await Submission.deleteOne({ _id: submission._id });
+
+        res.json({ message: 'Submission deleted successfully' });
+    } catch (error) {
+        console.error('Delete submission error:', error);
+        res.status(500).json({ message: 'Server error while deleting submission' });
+    }
+};
+
+// @desc    Request a student to resubmit their assignment
+// @route   POST /api/submissions/:id/request-resubmit
+// @access  Private (Faculty)
+const requestResubmission = async (req, res) => {
+    try {
+        const submission = await Submission.findById(req.params.id).populate('assignmentId');
+
+        if (!submission) {
+            return res.status(404).json({ message: 'Submission not found' });
+        }
+
+        submission.resubmissionRequested = true;
+        submission.status = 'resubmit_required';
+        await submission.save();
+
+        // Notify student
+        await createNotificationInternal(
+            submission.studentId,
+            'alert', // Using 'alert' for high priority
+            'Resubmission Requested',
+            `Your instructor has requested a resubmission for "${submission.assignmentId.title}". Please check the assignment feedback.`,
+            { submissionId: submission._id, assignmentId: submission.assignmentId._id },
+            'red'
+        );
+
+        res.json({ message: 'Resubmission requested successfully', submission });
+    } catch (error) {
+        console.error('Request resubmission error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
 module.exports = {
     uploadSubmission,
     gradeSubmissionAI,
@@ -385,5 +464,7 @@ module.exports = {
     getStudentSubmissions,
     approveSubmission,
     overrideGrade,
-    getSubmissionsByAssignment
+    getSubmissionsByAssignment,
+    deleteSubmission,
+    requestResubmission
 };
