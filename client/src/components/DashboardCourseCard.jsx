@@ -8,7 +8,7 @@ const DashboardCourseCard = ({ course, isFaculty }) => {
             <div className={`w-20 h-20 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0 overflow-hidden relative`} style={{ backgroundColor: !course.theme?.logo ? `var(--color-${course.theme?.color || 'blue'}-900)` : 'transparent', background: !course.theme?.logo && course.theme?.color ? `var(--color-${course.theme.color}-900)` : undefined }}>
                 {course.theme?.logo ? (
                     <img
-                        src={`http://localhost:5000/${course.theme.logo}`}
+                        src={`http://localhost:5000${course.theme.logo.startsWith('/') ? '' : '/'}${course.theme.logo}`}
                         alt={course.title}
                         className="w-full h-full object-cover"
                         onError={(e) => {

@@ -23,7 +23,19 @@ const uploadSyllabus = async (req, res) => {
         // Extract Text from PDF
         let extractedText = '';
         try {
-            const dataBuffer = fs.readFileSync(req.file.path);
+            const { getGridFSBucket } = require('../config/gridfs');
+            const bucket = getGridFSBucket();
+            
+            const chunks = [];
+            const downloadStream = bucket.openDownloadStreamByName(req.file.filename);
+            
+            await new Promise((resolve, reject) => {
+                downloadStream.on('data', chunk => chunks.push(chunk));
+                downloadStream.on('end', resolve);
+                downloadStream.on('error', reject);
+            });
+            
+            const dataBuffer = Buffer.concat(chunks);
             const data = await pdf(dataBuffer);
             extractedText = data.text;
             console.log('PDF Parse Success. Text Length:', extractedText ? extractedText.length : 0);
@@ -33,11 +45,11 @@ const uploadSyllabus = async (req, res) => {
 
         console.log('Final Extracted Text Length before DB Save:', extractedText ? extractedText.length : 0);
 
-        // Save to DB
+        // Save to DB (Store /api/files/filename instead of local path)
         const syllabus = await Syllabus.create({
             filename: req.file.filename,
             originalName: req.file.originalname,
-            path: req.file.path,
+            path: '/api/files/' + req.file.filename,
             uploadedBy: req.user.id,
             size: req.file.size,
             content: extractedText,
@@ -111,10 +123,39 @@ const generateAssignmentFromSyllabus = async (req, res) => {
            `;
             generatedAssignment = await generateJSON(fullPrompt);
 
-        } else if (fs.existsSync(syllabus.path)) {
-            // Case 2: No Text Extracted - Upload PDF directly to Gemini
-            console.log('No text content found. Uploading PDF directly to Gemini 2.5 Flash...');
-            generatedAssignment = await generateJSONWithFile(syllabus.path, 'application/pdf', prompt);
+        } else if (syllabus.filename) {
+            // Case 2: No Text Extracted - Download PDF from GridFS to temporary file, then upload directly to Gemini
+            console.log('No text content found. Downloading PDF from GridFS temporarily...');
+            
+            const { getGridFSBucket } = require('../config/gridfs');
+            const bucket = getGridFSBucket();
+            
+            const tempFilePath = path.join(__dirname, '../uploads', 'temp-' + syllabus.filename);
+            
+            // Ensure temp directory exists
+            if (!fs.existsSync(path.dirname(tempFilePath))) {
+                fs.mkdirSync(path.dirname(tempFilePath), { recursive: true });
+            }
+            
+            const downloadStream = bucket.openDownloadStreamByName(syllabus.filename);
+            const writeStream = fs.createWriteStream(tempFilePath);
+            
+            await new Promise((resolve, reject) => {
+                downloadStream.pipe(writeStream);
+                writeStream.on('finish', resolve);
+                writeStream.on('error', reject);
+                downloadStream.on('error', reject);
+            });
+            
+            console.log('Uploading temp PDF directly to Gemini 2.5 Flash...');
+            try {
+                generatedAssignment = await generateJSONWithFile(tempFilePath, 'application/pdf', prompt);
+            } finally {
+                // Always clean up temp file
+                if (fs.existsSync(tempFilePath)) {
+                    fs.unlinkSync(tempFilePath);
+                }
+            }
 
         } else {
             return res.status(400).json({ message: 'Syllabus file not found.' });
@@ -163,9 +204,16 @@ const deleteSyllabus = async (req, res) => {
             return res.status(401).json({ message: 'Not authorized' });
         }
 
-        // Delete from File System
-        if (fs.existsSync(syllabus.path)) {
-            fs.unlinkSync(syllabus.path);
+        // Delete from GridFS
+        if (syllabus.filename) {
+            const { getGridFSBucket } = require('../config/gridfs');
+            const bucket = getGridFSBucket();
+            if (bucket) {
+                const files = await bucket.find({ filename: syllabus.filename }).toArray();
+                if (files.length > 0) {
+                    await bucket.delete(files[0]._id);
+                }
+            }
         }
 
         // Delete from DB
@@ -344,9 +392,8 @@ const regenerateAllQuestions = async (req, res) => {
         const totalQuestions = numQuestions || assignment.questions?.length || 5;
         const marks = marksPerQuestion || (assignment.questions?.[0]?.marks) || 10;
 
-        // Get syllabus content if available
         let syllabusContent = '';
-        let syllabusPath = null;
+        let tempFilePath = null;
         let mimeType = null;
 
         if (syllabusId) {
@@ -354,22 +401,40 @@ const regenerateAllQuestions = async (req, res) => {
             if (syllabus) {
                 if (syllabus.content && syllabus.content.length > 50) {
                     syllabusContent = syllabus.content;
-                } else if (fs.existsSync(syllabus.path)) {
-                    syllabusPath = syllabus.path;
+                } else if (syllabus.filename) {
+                    const { getGridFSBucket } = require('../config/gridfs');
+                    const bucket = getGridFSBucket();
+                    tempFilePath = path.join(__dirname, '../uploads', 'temp-' + syllabus.filename);
+                    if (!fs.existsSync(path.dirname(tempFilePath))) {
+                        fs.mkdirSync(path.dirname(tempFilePath), { recursive: true });
+                    }
+                    const downloadStream = bucket.openDownloadStreamByName(syllabus.filename);
+                    const writeStream = fs.createWriteStream(tempFilePath);
+                    await new Promise((resolve, reject) => {
+                        downloadStream.pipe(writeStream);
+                        writeStream.on('finish', resolve);
+                        writeStream.on('error', reject);
+                        downloadStream.on('error', reject);
+                    });
                     mimeType = 'application/pdf';
                 }
             }
         }
 
-        // Generate all questions at once for efficiency
-        const newQuestions = await generateMultipleQuestions(
-            syllabusContent,
-            syllabusPath,
-            mimeType,
-            totalQuestions,
-            topics,
-            marks
-        );
+        let newQuestions;
+        try {
+            // Generate all questions at once for efficiency
+            newQuestions = await generateMultipleQuestions(
+                syllabusContent,
+                tempFilePath,
+                mimeType,
+                totalQuestions,
+                topics,
+                marks
+            );
+        } finally {
+            if (tempFilePath && fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
+        }
 
         if (!newQuestions || !Array.isArray(newQuestions) || newQuestions.length === 0) {
             return res.status(500).json({ message: 'Failed to generate questions' });
@@ -418,26 +483,44 @@ const regenerateQuestion = async (req, res) => {
 
         // Get syllabus content if available
         let syllabusContent = '';
-        let syllabusPath = null;
+        let tempFilePath = null;
         if (syllabusId) {
             const syllabus = await Syllabus.findById(syllabusId);
             if (syllabus) {
                 if (syllabus.content && syllabus.content.length > 50) {
                     syllabusContent = syllabus.content;
-                } else if (fs.existsSync(syllabus.path)) {
-                    syllabusPath = syllabus.path;
+                } else if (syllabus.filename) {
+                    const { getGridFSBucket } = require('../config/gridfs');
+                    const bucket = getGridFSBucket();
+                    tempFilePath = path.join(__dirname, '../uploads', 'temp-' + syllabus.filename);
+                    if (!fs.existsSync(path.dirname(tempFilePath))) {
+                        fs.mkdirSync(path.dirname(tempFilePath), { recursive: true });
+                    }
+                    const downloadStream = bucket.openDownloadStreamByName(syllabus.filename);
+                    const writeStream = fs.createWriteStream(tempFilePath);
+                    await new Promise((resolve, reject) => {
+                        downloadStream.pipe(writeStream);
+                        writeStream.on('finish', resolve);
+                        writeStream.on('error', reject);
+                        downloadStream.on('error', reject);
+                    });
                 }
             }
         }
 
-        // Call dedicated service method
-        const newQuestion = await regenerateSingleQuestion(
-            syllabusContent,
-            syllabusPath,
-            topics,
-            marksPerQuestion || assignment.questions[questionIndex].marks,
-            oldQuestion
-        );
+        let newQuestion;
+        try {
+            // Call dedicated service method
+            newQuestion = await regenerateSingleQuestion(
+                syllabusContent,
+                tempFilePath,
+                topics,
+                marksPerQuestion || assignment.questions[questionIndex].marks,
+                oldQuestion
+            );
+        } finally {
+            if (tempFilePath && fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
+        }
 
         if (!newQuestion || !newQuestion.questionText) {
             console.error('Gemini Regeneration Failed for Single Question');
@@ -491,27 +574,45 @@ const regeneratePreviewQuestion = async (req, res) => {
 
         // Get syllabus content if available
         let syllabusContent = '';
-        let syllabusPath = null;
+        let tempFilePath = null;
 
         const syllabus = await Syllabus.findById(syllabusId);
         if (syllabus) {
             if (syllabus.content && syllabus.content.length > 50) {
                 syllabusContent = syllabus.content;
-            } else if (fs.existsSync(syllabus.path)) {
-                syllabusPath = syllabus.path;
+            } else if (syllabus.filename) {
+                const { getGridFSBucket } = require('../config/gridfs');
+                const bucket = getGridFSBucket();
+                tempFilePath = path.join(__dirname, '../uploads', 'temp-' + syllabus.filename);
+                if (!fs.existsSync(path.dirname(tempFilePath))) {
+                    fs.mkdirSync(path.dirname(tempFilePath), { recursive: true });
+                }
+                const downloadStream = bucket.openDownloadStreamByName(syllabus.filename);
+                const writeStream = fs.createWriteStream(tempFilePath);
+                await new Promise((resolve, reject) => {
+                    downloadStream.pipe(writeStream);
+                    writeStream.on('finish', resolve);
+                    writeStream.on('error', reject);
+                    downloadStream.on('error', reject);
+                });
             }
         } else {
             return res.status(404).json({ message: 'Syllabus not found' });
         }
 
-        // Call dedicated service method
-        const newQuestion = await regenerateSingleQuestion(
-            syllabusContent,
-            syllabusPath,
-            topics,
-            marks,
-            currentQuestionText
-        );
+        let newQuestion;
+        try {
+            // Call dedicated service method
+            newQuestion = await regenerateSingleQuestion(
+                syllabusContent,
+                tempFilePath,
+                topics,
+                marks,
+                currentQuestionText
+            );
+        } finally {
+            if (tempFilePath && fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
+        }
 
         if (!newQuestion || !newQuestion.questionText) {
             console.error('Gemini Regeneration Failed for Preview Question');

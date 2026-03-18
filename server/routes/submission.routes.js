@@ -16,27 +16,8 @@ const {
 } = require('../controllers/submission.controller');
 
 // Multer Setup
-// const upload = multer({ dest: 'uploads/' }); // OLD
-const fs = require('fs');
 
-// Multer Disk Storage Setup
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        const userId = req.user ? req.user.id : 'anonymous'; // specific to user
-        const uploadPath = `uploads/students/${userId}`;
-
-        // Create directory if it doesn't exist
-        if (!fs.existsSync(uploadPath)) {
-            fs.mkdirSync(uploadPath, { recursive: true });
-        }
-        cb(null, uploadPath);
-    },
-    filename: (req, file, cb) => {
-        // Use original name as requested
-        cb(null, file.originalname);
-    }
-});
-
+const { storage } = require('../config/gridfs');
 const upload = multer({ storage: storage });
 
 router.get('/test-connectivity', (req, res) => {

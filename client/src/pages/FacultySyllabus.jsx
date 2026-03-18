@@ -284,7 +284,7 @@ const FacultySyllabus = () => {
                                             </div>
                                             <div className="flex items-center gap-2 w-full sm:w-auto">
                                                 <a
-                                                    href={`http://localhost:5000/uploads/faculty/${syllabus.filename}`}
+                                                    href={`http://localhost:5000/api/files/${syllabus.filename}`}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     className="flex-1 sm:flex-none py-2 px-4 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-center"

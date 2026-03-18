@@ -98,9 +98,35 @@ const uploadSubmission = async (req, res) => {
     }
 
     try {
+        // Download from GridFS to temp file for OCR
+        const { getGridFSBucket } = require('../config/gridfs');
+        const bucket = getGridFSBucket();
+        const tempFilePath = path.join(__dirname, '../uploads', 'temp-' + req.file.filename);
+        
+        if (!fs.existsSync(path.dirname(tempFilePath))) {
+            fs.mkdirSync(path.dirname(tempFilePath), { recursive: true });
+        }
+        
+        const downloadStream = bucket.openDownloadStreamByName(req.file.filename);
+        const writeStream = fs.createWriteStream(tempFilePath);
+        
+        await new Promise((resolve, reject) => {
+            downloadStream.pipe(writeStream);
+            writeStream.on('finish', resolve);
+            writeStream.on('error', reject);
+            downloadStream.on('error', reject);
+        });
+
         // Run OCR
         // Pass the mimetype from multer
-        const text = await extractText(req.file.path, req.file.mimetype);
+        let text = '';
+        try {
+            text = await extractText(tempFilePath, req.file.mimetype);
+        } finally {
+            if (fs.existsSync(tempFilePath)) {
+                fs.unlinkSync(tempFilePath);
+            }
+        }
 
         // Save Submission to DB
         const submission = await Submission.create({
@@ -108,7 +134,7 @@ const uploadSubmission = async (req, res) => {
             courseId: req.body.courseId,
             studentId: req.user.id,
             files: [{
-                path: req.file.path,
+                path: '/api/files/' + req.file.filename,
                 name: req.file.originalname,
                 type: req.file.mimetype
             }],
@@ -404,15 +430,24 @@ const deleteSubmission = async (req, res) => {
 
         // Delete physical files
         if (submission.files && submission.files.length > 0) {
-            submission.files.forEach(file => {
+            const { getGridFSBucket } = require('../config/gridfs');
+            const bucket = getGridFSBucket();
+            for (let file of submission.files) {
                 try {
-                    if (fs.existsSync(file.path)) {
+                    if (file.path && file.path.startsWith('/api/files/') && bucket) {
+                        const filename = file.path.split('/').pop();
+                        const gridFiles = await bucket.find({ filename }).toArray();
+                        if (gridFiles.length > 0) {
+                            await bucket.delete(gridFiles[0]._id);
+                        }
+                    } else if (fs.existsSync(file.path)) {
+                        // Fallback for legacy files
                         fs.unlinkSync(file.path);
                     }
                 } catch (err) {
                     console.error('Failed to delete file:', file.path, err);
                 }
-            });
+            }
         }
 
         await Submission.deleteOne({ _id: submission._id });

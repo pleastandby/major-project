@@ -121,18 +121,21 @@ const uploadProfilePicture = async (req, res) => {
             return res.status(404).json({ message: 'Profile not found' });
         }
 
-        // Delete old picture if exists and is local
-        if (profile.profilePicture && !profile.profilePicture.startsWith('http')) {
-            const oldPath = path.join(__dirname, '../', profile.profilePicture);
-            if (fs.existsSync(oldPath)) {
-                fs.unlinkSync(oldPath);
+        // Delete old picture if exists and is in GridFS
+        if (profile.profilePicture && profile.profilePicture.startsWith('/api/files/')) {
+            const oldFilename = profile.profilePicture.split('/').pop();
+            const { getGridFSBucket } = require('../config/gridfs');
+            const bucket = getGridFSBucket();
+            if (bucket) {
+                const files = await bucket.find({ filename: oldFilename }).toArray();
+                if (files.length > 0) {
+                    await bucket.delete(files[0]._id);
+                }
             }
         }
 
-        // Save new path relative to server root
-        // req.file.path is absolute or relative depending on config, let's normalize
-        // We want 'uploads/profiles/filename'
-        const relativePath = 'uploads/profiles/' + req.file.filename;
+        // Save new path for GridFS routing
+        const relativePath = '/api/files/' + req.file.filename;
 
         profile.profilePicture = relativePath;
         await profile.save();

@@ -11,7 +11,6 @@ const PORT = process.env.PORT || 5000;
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use('/uploads', express.static('uploads'));
 
 // Request Logger
 app.use((req, res, next) => {
@@ -20,11 +19,34 @@ app.use((req, res, next) => {
 });
 
 // Database Connection
-connectDB();
+connectDB().then((conn) => {
+  const { initGridFS } = require('./config/gridfs');
+  initGridFS(conn);
+});
 
 // Scheduler
 const { scheduleNotifications } = require('./cron/notificationScheduler');
 scheduleNotifications();
+
+// GridFS Streaming Route
+app.get('/api/files/:filename', async (req, res) => {
+  const { getGridFSBucket } = require('./config/gridfs');
+  const bucket = getGridFSBucket();
+  if (!bucket) return res.status(500).send('GridFS not initialized');
+  
+  try {
+      const files = await bucket.find({ filename: req.params.filename }).toArray();
+      if (!files || files.length === 0) {
+          return res.status(404).json({ message: 'File not found' });
+      }
+      res.set('Content-Type', files[0].contentType);
+      const downloadStream = bucket.openDownloadStreamByName(req.params.filename);
+      downloadStream.pipe(res);
+  } catch (err) {
+      console.error('Error streaming file from GridFS:', err);
+      res.status(500).json({ message: 'Error retrieving file' });
+  }
+});
 
 // Routes
 app.use('/api/auth', require('./routes/auth.routes'));

@@ -18,22 +18,7 @@ const {
 const { protect } = require('../middleware/authMiddleware');
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
-
-// Configure Multer
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        const uploadPath = path.join(__dirname, '../uploads/courses');
-        if (!fs.existsSync(uploadPath)) {
-            fs.mkdirSync(uploadPath, { recursive: true });
-        }
-        cb(null, uploadPath);
-    },
-    filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, 'course-' + uniqueSuffix + path.extname(file.originalname));
-    }
-});
+const { storage } = require('../config/gridfs');
 
 const upload = multer({
     storage: storage,

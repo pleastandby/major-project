@@ -18,7 +18,7 @@ const createCourse = async (req, res) => {
 
         let logoPath = null;
         if (req.file) {
-            logoPath = 'uploads/courses/' + req.file.filename;
+            logoPath = '/api/files/' + req.file.filename;
         }
 
         const course = await Course.create({
@@ -257,15 +257,18 @@ const updateCourse = async (req, res) => {
 
         if (req.file) {
             // Delete old logo if it exists
-            if (course.theme && course.theme.logo) {
-                const fs = require('fs');
-                const path = require('path');
-                const oldPath = path.join(__dirname, '../', course.theme.logo);
-                if (fs.existsSync(oldPath)) {
-                    fs.unlinkSync(oldPath);
+            if (course.theme && course.theme.logo && course.theme.logo.startsWith('/api/files/')) {
+                const oldFilename = course.theme.logo.split('/').pop();
+                const { getGridFSBucket } = require('../config/gridfs');
+                const bucket = getGridFSBucket();
+                if (bucket) {
+                    const files = await bucket.find({ filename: oldFilename }).toArray();
+                    if (files.length > 0) {
+                        await bucket.delete(files[0]._id);
+                    }
                 }
             }
-            course.theme.logo = 'uploads/courses/' + req.file.filename;
+            course.theme.logo = '/api/files/' + req.file.filename;
             course.theme.icon = 'image'; // Set icon type to image when logo is uploaded
         }
 
@@ -293,6 +296,17 @@ const deleteCourse = async (req, res) => {
             return res.status(401).json({ message: 'Not authorized' });
         }
 
+        if (course.theme && course.theme.logo && course.theme.logo.startsWith('/api/files/')) {
+            const oldFilename = course.theme.logo.split('/').pop();
+            const { getGridFSBucket } = require('../config/gridfs');
+            const bucket = getGridFSBucket();
+            if (bucket) {
+                const files = await bucket.find({ filename: oldFilename }).toArray();
+                if (files.length > 0) {
+                    await bucket.delete(files[0]._id);
+                }
+            }
+        }
         await course.deleteOne();
         res.json({ message: 'Course removed' });
     } catch (error) {

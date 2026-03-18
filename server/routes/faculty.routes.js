@@ -2,28 +2,10 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
 const { uploadSyllabus, getSyllabusList, deleteSyllabus, generateAssignmentFromSyllabus, saveGeneratedAssignment, getAssignmentsList, getAssignmentById, updateAssignment, regenerateAllQuestions, regenerateQuestion, regeneratePreviewQuestion, deleteAssignment } = require('../controllers/faculty.controller');
 const { protect } = require('../middleware/authMiddleware');
 
-// Configure Multer Storage
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        const uploadPath = path.join(__dirname, '../uploads/faculty');
-
-        // Ensure directory exists
-        if (!fs.existsSync(uploadPath)) {
-            fs.mkdirSync(uploadPath, { recursive: true });
-        }
-
-        cb(null, uploadPath);
-    },
-    filename: (req, file, cb) => {
-        // Create unique filename: syllabus-timestamp-originalName
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, 'syllabus-' + uniqueSuffix + path.extname(file.originalname));
-    }
-});
+const { storage } = require('../config/gridfs');
 
 // File Filter (Accept PDF and Images)
 const fileFilter = (req, file, cb) => {
