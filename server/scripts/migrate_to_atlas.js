@@ -6,7 +6,7 @@ const mongoose = require('mongoose');
 // 2. Replace ATLAS_URI with your MongoDB Atlas connection string
 // ============================================
 const LOCAL_URI = 'mongodb://localhost:27017/elevare';
-const ATLAS_URI = 'mongodb+srv://elevare_admin:g5iY5RBASBTmT0PW@elevarecluster.jhiydzm.mongodb.net/elevare_db?appName=ElevareCluster';
+const ATLAS_URI = "";
 
 async function migrate() {
     console.log('--- Elevare Database Migration ---');
