@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 // 1. Leave LOCAL_URI as is (your current local DB)
 // 2. Replace ATLAS_URI with your MongoDB Atlas connection string
 // ============================================
-const LOCAL_URI = 'mongodb://localhost:27017/elevare';
+const LOCAL_URI = '';
 const ATLAS_URI = "";
 
 async function migrate() {
