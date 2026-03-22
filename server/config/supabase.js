@@ -2,7 +2,10 @@ const { createClient } = require('@supabase/supabase-js');
 const fs = require('fs');
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseKey = process.env.VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY;
+// Prefer the powerful Service Role Key for the backend to bypass RLS, fallback to the anon key
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY && process.env.SUPABASE_SERVICE_KEY !== 'your_service_role_key_here' 
+    ? process.env.SUPABASE_SERVICE_KEY 
+    : process.env.VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const bucketName = process.env.SUPABASE_BUCKET || 'elevare';
