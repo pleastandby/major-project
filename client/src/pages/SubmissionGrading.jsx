@@ -30,7 +30,7 @@ const SubmissionGrading = () => {
     const [feedbackTab, setFeedbackTab] = useState('write'); // 'write' or 'preview'
 
     // Derived state for the file URL
-    const backendUrl = 'http://localhost:5000';
+    const backendUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000');
 
     useEffect(() => {
         fetchSubmission();

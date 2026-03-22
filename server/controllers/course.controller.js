@@ -2,6 +2,8 @@ const Course = require('../models/Course');
 const Enrollment = require('../models/Enrollment');
 const User = require('../models/User');
 const Profile = require('../models/Profile');
+const fs = require('fs');
+const { uploadToSupabase, deleteFromSupabase } = require('../config/supabase');
 
 // @desc    Create a new course
 // @route   POST /api/courses
@@ -18,7 +20,9 @@ const createCourse = async (req, res) => {
 
         let logoPath = null;
         if (req.file) {
-            logoPath = '/api/files/' + req.file.filename;
+            const driveFileId = await uploadToSupabase(req.file.path, req.file.originalname, req.file.mimetype);
+            if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+            logoPath = '/api/files/' + driveFileId;
         }
 
         const course = await Course.create({
@@ -258,17 +262,14 @@ const updateCourse = async (req, res) => {
         if (req.file) {
             // Delete old logo if it exists
             if (course.theme && course.theme.logo && course.theme.logo.startsWith('/api/files/')) {
-                const oldFilename = course.theme.logo.split('/').pop();
-                const { getGridFSBucket } = require('../config/gridfs');
-                const bucket = getGridFSBucket();
-                if (bucket) {
-                    const files = await bucket.find({ filename: oldFilename }).toArray();
-                    if (files.length > 0) {
-                        await bucket.delete(files[0]._id);
-                    }
-                }
+                const oldFileId = course.theme.logo.split('/').pop();
+                await deleteFromSupabase(oldFileId);
             }
-            course.theme.logo = '/api/files/' + req.file.filename;
+            
+            const driveFileId = await uploadToSupabase(req.file.path, req.file.originalname, req.file.mimetype);
+            if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+            
+            course.theme.logo = '/api/files/' + driveFileId;
             course.theme.icon = 'image'; // Set icon type to image when logo is uploaded
         }
 
@@ -297,15 +298,8 @@ const deleteCourse = async (req, res) => {
         }
 
         if (course.theme && course.theme.logo && course.theme.logo.startsWith('/api/files/')) {
-            const oldFilename = course.theme.logo.split('/').pop();
-            const { getGridFSBucket } = require('../config/gridfs');
-            const bucket = getGridFSBucket();
-            if (bucket) {
-                const files = await bucket.find({ filename: oldFilename }).toArray();
-                if (files.length > 0) {
-                    await bucket.delete(files[0]._id);
-                }
-            }
+            const oldFileId = course.theme.logo.split('/').pop();
+            await deleteFromSupabase(oldFileId);
         }
         await course.deleteOne();
         res.json({ message: 'Course removed' });

@@ -18,7 +18,7 @@ const {
 const { protect } = require('../middleware/authMiddleware');
 const multer = require('multer');
 const path = require('path');
-const { storage } = require('../config/gridfs');
+const { storage } = require('../config/multer');
 
 const upload = multer({
     storage: storage,

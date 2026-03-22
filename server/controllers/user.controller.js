@@ -3,6 +3,7 @@ const Profile = require('../models/Profile');
 const bcrypt = require('bcryptjs');
 const fs = require('fs');
 const path = require('path');
+const { uploadToSupabase, deleteFromSupabase } = require('../config/supabase');
 
 // @desc    Get current user profile
 // @route   GET /api/user/profile
@@ -121,21 +122,22 @@ const uploadProfilePicture = async (req, res) => {
             return res.status(404).json({ message: 'Profile not found' });
         }
 
-        // Delete old picture if exists and is in GridFS
+        // Delete old picture if exists and is from Supabase
         if (profile.profilePicture && profile.profilePicture.startsWith('/api/files/')) {
-            const oldFilename = profile.profilePicture.split('/').pop();
-            const { getGridFSBucket } = require('../config/gridfs');
-            const bucket = getGridFSBucket();
-            if (bucket) {
-                const files = await bucket.find({ filename: oldFilename }).toArray();
-                if (files.length > 0) {
-                    await bucket.delete(files[0]._id);
-                }
-            }
+            const oldFileId = profile.profilePicture.split('/').pop();
+            await deleteFromSupabase(oldFileId);
         }
 
-        // Save new path for GridFS routing
-        const relativePath = '/api/files/' + req.file.filename;
+        // Upload new picture to Supabase
+        const driveFileId = await uploadToSupabase(req.file.path, req.file.originalname, req.file.mimetype);
+
+        // Delete temporary local file
+        fs.unlink(req.file.path, (err) => {
+            if (err) console.error('Failed to delete temp file:', err);
+        });
+
+        // Save new path for Supabase routing
+        const relativePath = '/api/files/' + driveFileId;
 
         profile.profilePicture = relativePath;
         await profile.save();
@@ -147,7 +149,7 @@ const uploadProfilePicture = async (req, res) => {
 
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ message: 'Server error during file upload', details: error.message });
     }
 };
 

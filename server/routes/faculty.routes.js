@@ -5,7 +5,7 @@ const path = require('path');
 const { uploadSyllabus, getSyllabusList, deleteSyllabus, generateAssignmentFromSyllabus, saveGeneratedAssignment, getAssignmentsList, getAssignmentById, updateAssignment, regenerateAllQuestions, regenerateQuestion, regeneratePreviewQuestion, deleteAssignment } = require('../controllers/faculty.controller');
 const { protect } = require('../middleware/authMiddleware');
 
-const { storage } = require('../config/gridfs');
+const { storage } = require('../config/multer');
 
 // File Filter (Accept PDF and Images)
 const fileFilter = (req, file, cb) => {

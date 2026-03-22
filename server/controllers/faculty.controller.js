@@ -5,6 +5,7 @@ const pdf = require('pdf-parse');
 const Syllabus = require('../models/Syllabus');
 const Assignment = require('../models/Assignment');
 const { generateJSON, generateJSONWithFile, generateMultipleQuestions, regenerateSingleQuestion } = require('../services/gemini.service');
+const { uploadToSupabase, streamFromSupabase, downloadFromSupabase, deleteFromSupabase } = require('../config/supabase');
 
 // @desc    Upload syllabus
 // @route   POST /api/faculty/syllabus
@@ -18,38 +19,33 @@ const uploadSyllabus = async (req, res) => {
         const { courseId } = req.body;
         if (!courseId) {
             return res.status(400).json({ message: 'Course ID is required' });
-        }
-
-        // Extract Text from PDF
+        }        // Extract Text from PDF
         let extractedText = '';
         try {
-            const { getGridFSBucket } = require('../config/gridfs');
-            const bucket = getGridFSBucket();
-            
-            const chunks = [];
-            const downloadStream = bucket.openDownloadStreamByName(req.file.filename);
-            
-            await new Promise((resolve, reject) => {
-                downloadStream.on('data', chunk => chunks.push(chunk));
-                downloadStream.on('end', resolve);
-                downloadStream.on('error', reject);
-            });
-            
-            const dataBuffer = Buffer.concat(chunks);
+            const dataBuffer = fs.readFileSync(req.file.path);
             const data = await pdf(dataBuffer);
             extractedText = data.text;
-            console.log('PDF Parse Success. Text Length:', extractedText ? extractedText.length : 0);
         } catch (error) {
             console.error('PDF Extraction Error:', error.message);
         }
 
-        console.log('Final Extracted Text Length before DB Save:', extractedText ? extractedText.length : 0);
+        // Upload to Supabase
+        let driveFileId;
+        try {
+            driveFileId = await uploadToSupabase(req.file.path, req.file.originalname, req.file.mimetype);
+        } catch(e) {
+            if(fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+            throw e;
+        }
 
-        // Save to DB (Store /api/files/filename instead of local path)
+        // Clean up temp
+        if(fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+
+        // Save to DB
         const syllabus = await Syllabus.create({
-            filename: req.file.filename,
+            filename: req.file.originalname,
             originalName: req.file.originalname,
-            path: '/api/files/' + req.file.filename,
+            path: '/api/files/' + driveFileId,
             uploadedBy: req.user.id,
             size: req.file.size,
             content: extractedText,
@@ -123,29 +119,11 @@ const generateAssignmentFromSyllabus = async (req, res) => {
            `;
             generatedAssignment = await generateJSON(fullPrompt);
 
-        } else if (syllabus.filename) {
-            // Case 2: No Text Extracted - Download PDF from GridFS to temporary file, then upload directly to Gemini
-            console.log('No text content found. Downloading PDF from GridFS temporarily...');
-            
-            const { getGridFSBucket } = require('../config/gridfs');
-            const bucket = getGridFSBucket();
-            
-            const tempFilePath = path.join(__dirname, '../uploads', 'temp-' + syllabus.filename);
-            
-            // Ensure temp directory exists
-            if (!fs.existsSync(path.dirname(tempFilePath))) {
-                fs.mkdirSync(path.dirname(tempFilePath), { recursive: true });
-            }
-            
-            const downloadStream = bucket.openDownloadStreamByName(syllabus.filename);
-            const writeStream = fs.createWriteStream(tempFilePath);
-            
-            await new Promise((resolve, reject) => {
-                downloadStream.pipe(writeStream);
-                writeStream.on('finish', resolve);
-                writeStream.on('error', reject);
-                downloadStream.on('error', reject);
-            });
+        } else if (syllabus.path) {
+            console.log('No text content found. Downloading PDF from Drive temporarily...');
+            const fileId = syllabus.path.split('/').pop();
+            const tempFilePath = path.join(__dirname, '../tmp', 'temp-' + fileId + '.pdf');
+            await downloadFromSupabase(fileId, tempFilePath);
             
             console.log('Uploading temp PDF directly to Gemini 2.5 Flash...');
             try {
@@ -204,16 +182,10 @@ const deleteSyllabus = async (req, res) => {
             return res.status(401).json({ message: 'Not authorized' });
         }
 
-        // Delete from GridFS
-        if (syllabus.filename) {
-            const { getGridFSBucket } = require('../config/gridfs');
-            const bucket = getGridFSBucket();
-            if (bucket) {
-                const files = await bucket.find({ filename: syllabus.filename }).toArray();
-                if (files.length > 0) {
-                    await bucket.delete(files[0]._id);
-                }
-            }
+        // Delete from Supabase
+        if (syllabus.path && syllabus.path.startsWith('/api/files/')) {
+            const fileId = syllabus.path.split('/').pop();
+            await deleteFromSupabase(fileId);
         }
 
         // Delete from DB
@@ -402,20 +374,9 @@ const regenerateAllQuestions = async (req, res) => {
                 if (syllabus.content && syllabus.content.length > 50) {
                     syllabusContent = syllabus.content;
                 } else if (syllabus.filename) {
-                    const { getGridFSBucket } = require('../config/gridfs');
-                    const bucket = getGridFSBucket();
-                    tempFilePath = path.join(__dirname, '../uploads', 'temp-' + syllabus.filename);
-                    if (!fs.existsSync(path.dirname(tempFilePath))) {
-                        fs.mkdirSync(path.dirname(tempFilePath), { recursive: true });
-                    }
-                    const downloadStream = bucket.openDownloadStreamByName(syllabus.filename);
-                    const writeStream = fs.createWriteStream(tempFilePath);
-                    await new Promise((resolve, reject) => {
-                        downloadStream.pipe(writeStream);
-                        writeStream.on('finish', resolve);
-                        writeStream.on('error', reject);
-                        downloadStream.on('error', reject);
-                    });
+                    const fileId = syllabus.path.split('/').pop();
+                    tempFilePath = path.join(__dirname, '../tmp', 'temp-' + fileId + '.pdf');
+                    await downloadFromSupabase(fileId, tempFilePath);
                     mimeType = 'application/pdf';
                 }
             }
@@ -490,20 +451,9 @@ const regenerateQuestion = async (req, res) => {
                 if (syllabus.content && syllabus.content.length > 50) {
                     syllabusContent = syllabus.content;
                 } else if (syllabus.filename) {
-                    const { getGridFSBucket } = require('../config/gridfs');
-                    const bucket = getGridFSBucket();
-                    tempFilePath = path.join(__dirname, '../uploads', 'temp-' + syllabus.filename);
-                    if (!fs.existsSync(path.dirname(tempFilePath))) {
-                        fs.mkdirSync(path.dirname(tempFilePath), { recursive: true });
-                    }
-                    const downloadStream = bucket.openDownloadStreamByName(syllabus.filename);
-                    const writeStream = fs.createWriteStream(tempFilePath);
-                    await new Promise((resolve, reject) => {
-                        downloadStream.pipe(writeStream);
-                        writeStream.on('finish', resolve);
-                        writeStream.on('error', reject);
-                        downloadStream.on('error', reject);
-                    });
+                    const fileId = syllabus.path.split('/').pop();
+                    tempFilePath = path.join(__dirname, '../tmp', 'temp-' + fileId + '.pdf');
+                    await downloadFromSupabase(fileId, tempFilePath);
                 }
             }
         }
@@ -581,20 +531,9 @@ const regeneratePreviewQuestion = async (req, res) => {
             if (syllabus.content && syllabus.content.length > 50) {
                 syllabusContent = syllabus.content;
             } else if (syllabus.filename) {
-                const { getGridFSBucket } = require('../config/gridfs');
-                const bucket = getGridFSBucket();
-                tempFilePath = path.join(__dirname, '../uploads', 'temp-' + syllabus.filename);
-                if (!fs.existsSync(path.dirname(tempFilePath))) {
-                    fs.mkdirSync(path.dirname(tempFilePath), { recursive: true });
-                }
-                const downloadStream = bucket.openDownloadStreamByName(syllabus.filename);
-                const writeStream = fs.createWriteStream(tempFilePath);
-                await new Promise((resolve, reject) => {
-                    downloadStream.pipe(writeStream);
-                    writeStream.on('finish', resolve);
-                    writeStream.on('error', reject);
-                    downloadStream.on('error', reject);
-                });
+                const fileId = syllabus.path.split('/').pop();
+                    tempFilePath = path.join(__dirname, '../tmp', 'temp-' + fileId + '.pdf');
+                    await downloadFromSupabase(fileId, tempFilePath);
             }
         } else {
             return res.status(404).json({ message: 'Syllabus not found' });

@@ -154,12 +154,13 @@ const UserProfile = () => {
                             <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white dark:border-gray-700 shadow-md">
                                 {profile?.profilePicture ? (
                                     <img
-                                        src={`http://localhost:5000/${profile.profilePicture}`}
+                                        src={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${profile.profilePicture.startsWith('/') ? '' : '/'}${profile.profilePicture}`}
                                         alt="Profile"
                                         className="w-full h-full object-cover"
+                                        onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
                                     />
                                 ) : (
-                                    <div className="w-full h-full bg-linear-to-br from-primary to-purple-500 flex items-center justify-center text-white text-2xl font-bold">
+                                    <div className="w-full h-full bg-linear-to-br from-primary to-purple-500 flex items-center justify-center text-white text-2xl font-bold" style={{ display: profile?.profilePicture ? 'none' : 'flex' }}>
                                         {formData.name?.charAt(0) || 'U'}
                                     </div>
                                 )}

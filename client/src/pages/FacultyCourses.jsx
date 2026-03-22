@@ -62,7 +62,7 @@ const FacultyCourses = () => {
                                                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white shadow-sm shrink-0 overflow-hidden relative`} style={{ backgroundColor: !course.theme?.logo ? `var(--color-${course.theme?.color || 'blue'}-900)` : 'transparent', background: !course.theme?.logo && course.theme?.color ? `var(--color-${course.theme.color}-900)` : undefined }}>
                                                     {course.theme?.logo ? (
                                                         <img
-                                                            src={`http://localhost:5000/${course.theme.logo}`}
+                                                            src={`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:5000')}/${course.theme.logo}`}
                                                             alt={course.title}
                                                             className="w-full h-full object-cover"
                                                             onError={(e) => {

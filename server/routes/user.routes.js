@@ -5,7 +5,7 @@ const path = require('path');
 const { protect } = require('../middleware/authMiddleware');
 const { getProfile, updateProfile, changePassword, uploadProfilePicture } = require('../controllers/user.controller');
 
-const { storage } = require('../config/gridfs');
+const { storage } = require('../config/multer');
 
 const fileFilter = (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) {

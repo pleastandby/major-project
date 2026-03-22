@@ -5,6 +5,7 @@ const path = require('path');
 const { extractText } = require('../services/ocr.service');
 const { generateJSON } = require('../services/gemini.service');
 const { createNotificationInternal } = require('./notification.controller');
+const { uploadToSupabase, deleteFromSupabase } = require('../config/supabase');
 
 // @desc    Upload submission and run OCR
 // @route   POST /api/submissions/upload
@@ -98,35 +99,27 @@ const uploadSubmission = async (req, res) => {
     }
 
     try {
-        // Download from GridFS to temp file for OCR
-        const { getGridFSBucket } = require('../config/gridfs');
-        const bucket = getGridFSBucket();
-        const tempFilePath = path.join(__dirname, '../uploads', 'temp-' + req.file.filename);
-        
-        if (!fs.existsSync(path.dirname(tempFilePath))) {
-            fs.mkdirSync(path.dirname(tempFilePath), { recursive: true });
-        }
-        
-        const downloadStream = bucket.openDownloadStreamByName(req.file.filename);
-        const writeStream = fs.createWriteStream(tempFilePath);
-        
-        await new Promise((resolve, reject) => {
-            downloadStream.pipe(writeStream);
-            writeStream.on('finish', resolve);
-            writeStream.on('error', reject);
-            downloadStream.on('error', reject);
-        });
+        const tempFilePath = req.file.path;
 
-        // Run OCR
-        // Pass the mimetype from multer
+        // Run OCR directly on the uploaded temp file
         let text = '';
         try {
             text = await extractText(tempFilePath, req.file.mimetype);
-        } finally {
-            if (fs.existsSync(tempFilePath)) {
-                fs.unlinkSync(tempFilePath);
-            }
+        } catch (ocrErr) {
+            console.warn('OCR Failed or skipped:', ocrErr);
         }
+
+        // Upload to Google Drive
+        let driveFileId;
+        try {
+            driveFileId = await uploadToSupabase(tempFilePath, req.file.originalname, req.file.mimetype);
+        } catch (uploadErr) {
+            if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
+            throw uploadErr;
+        }
+
+        // Clean up temp file
+        if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
 
         // Save Submission to DB
         const submission = await Submission.create({
@@ -134,7 +127,7 @@ const uploadSubmission = async (req, res) => {
             courseId: req.body.courseId,
             studentId: req.user.id,
             files: [{
-                path: '/api/files/' + req.file.filename,
+                path: '/api/files/' + driveFileId,
                 name: req.file.originalname,
                 type: req.file.mimetype
             }],
@@ -428,24 +421,19 @@ const deleteSubmission = async (req, res) => {
             return res.status(403).json({ message: 'Cannot delete submission after 2 hours unless resubmission is requested by faculty.' });
         }
 
-        // Delete physical files
+        // Delete physical files from Google Drive
         if (submission.files && submission.files.length > 0) {
-            const { getGridFSBucket } = require('../config/gridfs');
-            const bucket = getGridFSBucket();
             for (let file of submission.files) {
                 try {
-                    if (file.path && file.path.startsWith('/api/files/') && bucket) {
-                        const filename = file.path.split('/').pop();
-                        const gridFiles = await bucket.find({ filename }).toArray();
-                        if (gridFiles.length > 0) {
-                            await bucket.delete(gridFiles[0]._id);
-                        }
+                    if (file.path && file.path.startsWith('/api/files/')) {
+                        const fileId = file.path.split('/').pop();
+                        await deleteFromSupabase(fileId);
                     } else if (fs.existsSync(file.path)) {
-                        // Fallback for legacy files
+                        // Fallback for legacy local files
                         fs.unlinkSync(file.path);
                     }
                 } catch (err) {
-                    console.error('Failed to delete file:', file.path, err);
+                    console.error('Failed to delete file from Drive:', file.path, err);
                 }
             }
         }

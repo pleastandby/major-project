@@ -17,7 +17,7 @@ const {
 
 // Multer Setup
 
-const { storage } = require('../config/gridfs');
+const { storage } = require('../config/multer');
 const upload = multer({ storage: storage });
 
 router.get('/test-connectivity', (req, res) => {

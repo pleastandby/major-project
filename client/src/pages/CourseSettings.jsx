@@ -50,7 +50,7 @@ const CourseSettings = () => {
                     });
 
                     if (data.theme?.logo) {
-                        setLogoPreview(`http://localhost:5000${data.theme.logo.startsWith('/') ? '' : '/'}${data.theme.logo}`);
+                        setLogoPreview(`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:5000')}${data.theme.logo.startsWith('/') ? '' : '/'}${data.theme.logo}`);
                     }
                 } else {
                     setError('Failed to load course details');
