@@ -44,7 +44,7 @@ const FacultySubmissions = () => {
 
     useEffect(() => {
         // Test connectivity
-        fetch('/api/submissions/test-connectivity')
+        fetch(`${import.meta.env.VITE_API_URL || ''}/api/submissions/test-connectivity`)
             .then(res => res.json())
             .then(data => console.log('Connectivity Test:', data))
             .catch(err => console.error('Connectivity Test Failed:', err));

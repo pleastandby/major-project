@@ -59,7 +59,7 @@ const VerifyOTP = () => {
         setError('');
 
         try {
-            const res = await fetch('/api/auth/verify-otp', {
+            const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/auth/verify-otp`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, otp: otpString })
@@ -84,7 +84,7 @@ const VerifyOTP = () => {
         // Logic to resend OTP
         // Re-use forgot password API
         try {
-            const res = await fetch('/api/auth/forgot-password', {
+            const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/auth/forgot-password`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email })

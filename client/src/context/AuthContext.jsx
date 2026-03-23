@@ -28,7 +28,8 @@ export const AuthProvider = ({ children }) => {
             headers['Authorization'] = `Bearer ${accessToken}`;
         }
 
-        let response = await fetch(url, { ...options, headers });
+        const fullUrl = url.startsWith('/api') ? `${import.meta.env.VITE_API_URL || ''}${url}` : url;
+        let response = await fetch(fullUrl, { ...options, headers });
 
         // Handle Token Expiry
         if (response.status === 401) {
@@ -39,7 +40,7 @@ export const AuthProvider = ({ children }) => {
                     // Retry original request with new token
                     accessToken = localStorage.getItem('accessToken');
                     headers['Authorization'] = `Bearer ${accessToken}`;
-                    response = await fetch(url, { ...options, headers });
+                    response = await fetch(fullUrl, { ...options, headers });
                 } else {
                     logout(); // Refresh failed
                     throw new Error('Session expired');
@@ -58,7 +59,7 @@ export const AuthProvider = ({ children }) => {
         if (!storedRefreshToken) return false;
 
         try {
-            const res = await fetch('/api/auth/refresh', {
+            const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/auth/refresh`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ refreshToken: storedRefreshToken })
@@ -90,7 +91,7 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (role, email, password) => {
         try {
-            const response = await fetch('/api/auth/login', {
+            const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password }),
@@ -128,7 +129,7 @@ export const AuthProvider = ({ children }) => {
 
     const register = async (payload) => {
         try {
-            const response = await fetch('/api/auth/register', {
+            const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
@@ -162,7 +163,7 @@ export const AuthProvider = ({ children }) => {
         const storedRefreshToken = localStorage.getItem('refreshToken');
         if (storedRefreshToken) {
             try {
-                await fetch('/api/auth/logout', {
+                await fetch(`${import.meta.env.VITE_API_URL || ''}/api/auth/logout`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ refreshToken: storedRefreshToken })
