@@ -150,7 +150,7 @@ const SubmissionGrading = () => {
     if (!submission) return <div>Submission not found</div>;
 
     const fileUrl = submission.files && submission.files.length > 0
-        ? `${backendUrl}/${submission.files[0].path.replace(/\\/g, '/')}`
+        ? `${backendUrl}${submission.files[0].path.replace(/\\/g, '/').startsWith('/') ? '' : '/'}${submission.files[0].path.replace(/\\/g, '/')}`
         : null;
 
     return (

@@ -5,6 +5,8 @@ const AuthContext = createContext();
 
 export const useAuth = () => useContext(AuthContext);
 
+let refreshPromise = null;
+
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -55,26 +57,37 @@ export const AuthProvider = ({ children }) => {
     };
 
     const refreshToken = async () => {
-        const storedRefreshToken = localStorage.getItem('refreshToken');
-        if (!storedRefreshToken) return false;
+        if (refreshPromise) return refreshPromise;
+
+        refreshPromise = (async () => {
+            const storedRefreshToken = localStorage.getItem('refreshToken');
+            if (!storedRefreshToken) return false;
+
+            try {
+                const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/auth/refresh`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ refreshToken: storedRefreshToken })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    localStorage.setItem('accessToken', data.accessToken);
+                    localStorage.setItem('refreshToken', data.refreshToken);
+                    return true;
+                }
+            } catch (error) {
+                console.error('Refresh failed', error);
+            }
+            return false;
+        })();
 
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/auth/refresh`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ refreshToken: storedRefreshToken })
-            });
-
-            if (res.ok) {
-                const data = await res.json();
-                localStorage.setItem('accessToken', data.accessToken);
-                localStorage.setItem('refreshToken', data.refreshToken);
-                return true;
-            }
-        } catch (error) {
-            console.error('Refresh failed', error);
+            const result = await refreshPromise;
+            return result;
+        } finally {
+            refreshPromise = null;
         }
-        return false;
     };
 
     useEffect(() => {

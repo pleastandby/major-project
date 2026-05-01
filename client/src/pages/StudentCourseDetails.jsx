@@ -130,7 +130,7 @@ const StudentCourseDetails = () => {
                             }}>
                             {course.theme?.logo ? (
                                 <img
-                                    src={`${import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'http://localhost:5000')}/${course.theme.logo}`}
+                                    src={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${course.theme.logo.startsWith('/') ? '' : '/'}${course.theme.logo}`}
                                     alt={course.title}
                                     className="w-full h-full object-cover"
                                     onError={(e) => {
